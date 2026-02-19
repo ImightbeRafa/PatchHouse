@@ -1,0 +1,25 @@
+{
+  "name": "patchhouse",
+  "version": "1.0.0",
+  "description": "PatchHouse.CR – Parches Transdérmicos Naturales | Costa Rica",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "ecommerce",
+    "patchhouse",
+    "parches-transdermicos",
+    "bienestar",
+    "costa-rica"
+  ],
+  "author": "PatchHouse",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "terser": "^5.44.1",
+    "vite": "^5.0.0"
+  }
+}
