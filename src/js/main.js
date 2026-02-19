@@ -146,7 +146,7 @@ if (paymentMethodSelect && paymentInfoBox) {
         <div class="payment-instructions sinpe">
           <h4>SINPE Móvil</h4>
           <div style="background: #f8f8f9; padding: 14px; border-radius: 10px; margin: 12px 0; border-left: 3px solid var(--primary, #3a8f6a);">
-            <p style="margin: 4px 0;"><strong>Número:</strong> <span style="font-size: 1.05em; color: #3a3a4a;">7052-6254</span></p>
+            <p style="margin: 4px 0;"><strong>Número:</strong> <span style="font-size: 1.05em; color: #3a3a4a;">6201-9914</span></p>
             <p style="margin: 4px 0;"><strong>Nombre:</strong> Rafael Garcia</p>
           </div>
           <ul>

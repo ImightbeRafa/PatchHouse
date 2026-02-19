@@ -94,13 +94,13 @@ async function sendCustomerEmail(order) {
         ${order.paymentMethod === 'SINPE' ? `
         <div class="highlight">
           <h3>Instrucciones de Pago SINPE</h3>
-          <p><strong>Número SINPE:</strong> 7052-6254</p>
+          <p><strong>Número SINPE:</strong> 6201-9914</p>
           <p><strong>Nombre:</strong> Rafael Garcia</p>
           <p><strong>Monto:</strong> ₡${order.total.toLocaleString('es-CR')}</p>
           <p><strong>Pasos a seguir:</strong></p>
           <ol>
             <li>Abrí la aplicación SINPE Móvil de tu banco</li>
-            <li>Realizá la transferencia al número <strong>7052-6254</strong></li>
+            <li>Realizá la transferencia al número <strong>6201-9914</strong></li>
             <li><strong>Importante:</strong> En el concepto escribí: <code>${esc(order.orderId)}</code></li>
             <li>Guardá el comprobante de pago</li>
             <li>Enviá el comprobante por WhatsApp al <strong>7052-6254</strong></li>

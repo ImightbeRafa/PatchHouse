@@ -1443,6 +1443,16 @@ a { text-decoration: none; color: inherit; }
   color: var(--gray-600);
 }
 
+/* ===== PERFORMANCE ===== */
+.combos,
+.benefits,
+.shipping-info,
+.faq,
+.order-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .benefits-grid { grid-template-columns: repeat(2, 1fr); }

@@ -8,7 +8,8 @@
   <link rel="icon" type="image/png" href="/images/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"></noscript>
   <link rel="stylesheet" href="/src/styles/main.css">
   <script type="module" src="/src/js/main.js"></script>
 </head>
@@ -66,8 +67,8 @@
       </div>
       <div class="hero-visual">
         <div class="hero-product-grid">
-          <a href="#patch-focus" class="hero-card hero-card-1"><img src="/images/focus.jpg" alt="Focus Patch"></a>
-          <a href="#patch-nad" class="hero-card hero-card-2"><img src="/images/nad.jpg" alt="NAD Patch"></a>
+          <a href="#patch-focus" class="hero-card hero-card-1"><img src="/images/focus.jpg" alt="Focus Patch" fetchpriority="high"></a>
+          <a href="#patch-nad" class="hero-card hero-card-2"><img src="/images/nad.jpg" alt="NAD Patch" fetchpriority="high"></a>
           <a href="#patch-dopamine" class="hero-card hero-card-3"><img src="/images/dopamine.jpg" alt="Dopamine Patch"></a>
           <a href="#patch-stress" class="hero-card hero-card-4"><img src="/images/stressdown.jpg" alt="Stress Relief Patch"></a>
         </div>
@@ -306,7 +307,7 @@
           <div class="combo-badge">Ahorrás ₡1.900</div>
           <h3>Combo Duo<br><span>Mente & Energía</span></h3>
           <div class="combo-products">
-            <img src="/images/focus.jpg" alt="Focus"><span>+</span><img src="/images/nad.jpg" alt="NAD">
+            <img src="/images/focus.jpg" alt="Focus" loading="lazy"><span>+</span><img src="/images/nad.jpg" alt="NAD" loading="lazy">
           </div>
           <p>Focus Patch + NAD Patch</p>
           <div class="combo-pricing">
@@ -324,10 +325,10 @@
           <div class="combo-badge">Ahorrás ₡4.700</div>
           <h3>Full House<br><span>4 Paquetes</span></h3>
           <div class="combo-products combo-products-full">
-            <img src="/images/focus.jpg" alt="Focus">
-            <img src="/images/nad.jpg" alt="NAD">
-            <img src="/images/dopamine.jpg" alt="Dopamine">
-            <img src="/images/stressdown.jpg" alt="Stress">
+            <img src="/images/focus.jpg" alt="Focus" loading="lazy">
+            <img src="/images/nad.jpg" alt="NAD" loading="lazy">
+            <img src="/images/dopamine.jpg" alt="Dopamine" loading="lazy">
+            <img src="/images/stressdown.jpg" alt="Stress" loading="lazy">
           </div>
           <p>Focus + NAD + Dopamine + Stress Relief</p>
           <div class="combo-pricing">
@@ -345,7 +346,7 @@
           <div class="combo-badge">Ahorrás ₡1.900</div>
           <h3>Combo Duo<br><span>Mood & Calma</span></h3>
           <div class="combo-products">
-            <img src="/images/dopamine.jpg" alt="Dopamine"><span>+</span><img src="/images/stressdown.jpg" alt="Stress">
+            <img src="/images/dopamine.jpg" alt="Dopamine" loading="lazy"><span>+</span><img src="/images/stressdown.jpg" alt="Stress" loading="lazy">
           </div>
           <p>Dopamine Patch + Stress Relief Patch</p>
           <div class="combo-pricing">
