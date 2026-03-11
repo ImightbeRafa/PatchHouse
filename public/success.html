@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verificando Pago – PatchHouse</title>
   <link rel="icon" type="image/png" href="/images/logo.png">
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '2330584627352047');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=2330584627352047&ev=PageView&noscript=1"
+  /></noscript>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -118,6 +133,36 @@
 
   <script>
     (function() {
+      function metaTrack(eventName, params, options) {
+        try {
+          if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+            if (params && options) {
+              window.fbq('track', eventName, params, options);
+              return;
+            }
+            if (params) {
+              window.fbq('track', eventName, params);
+              return;
+            }
+            window.fbq('track', eventName);
+          }
+        } catch {
+        }
+      }
+
+      function getPurchasePayloadFromOrder(order) {
+        if (!order || !order.total || !Array.isArray(order.items)) return null;
+        var contentIds = order.items.map(function(i) { return i.key; }).filter(Boolean);
+        var numItems = order.items.reduce(function(sum, i) { return sum + (parseInt(i.qty, 10) || 0); }, 0);
+        return {
+          value: Number(order.total) || 0,
+          currency: 'CRC',
+          content_ids: contentIds,
+          content_type: 'product',
+          num_items: numItems
+        };
+      }
+
       function showView(name) {
         document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
         var el = document.getElementById('view-' + name);
@@ -158,6 +203,21 @@
         return;
       }
 
+      var purchaseKey = 'meta_purchase_' + (orderId || '') + '_' + (transactionId || '');
+      function trackPurchaseOnce() {
+        if (sessionStorage.getItem(purchaseKey)) return;
+        if (!returnData) return;
+        try {
+          var decoded = atob(returnData);
+          var order = JSON.parse(decoded);
+          var payload = getPurchasePayloadFromOrder(order);
+          if (!payload) return;
+          metaTrack('Purchase', payload, { eventID: purchaseKey });
+          sessionStorage.setItem(purchaseKey, '1');
+        } catch (e) {
+        }
+      }
+
       if (!returnData) {
         document.getElementById('order-number').textContent = orderId || '—';
         showView('success');
@@ -178,6 +238,7 @@
           sessionStorage.setItem(confirmKey, '1');
           document.getElementById('order-number').textContent = orderId || '—';
           showView('success');
+          trackPurchaseOnce();
         } else {
           showView('error');
           document.getElementById('error-description').textContent =

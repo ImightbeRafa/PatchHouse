@@ -16,6 +16,80 @@ const SHIPPING_COST = 2600;
 
 const cart = {};
 
+function metaTrack(eventName, params) {
+  try {
+    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+      if (params) {
+        window.fbq('track', eventName, params);
+      } else {
+        window.fbq('track', eventName);
+      }
+    }
+  } catch {
+    // no-op
+  }
+}
+
+function getCartEntries() {
+  return Object.entries(cart).filter(([, qty]) => qty > 0);
+}
+
+function getCartItemsForMeta() {
+  const entries = getCartEntries();
+  return entries
+    .map(([key, qty]) => {
+      const p = PRODUCTS[key];
+      if (!p) return null;
+      return { key, qty, product: p };
+    })
+    .filter(Boolean);
+}
+
+function getCartMetaValue() {
+  const items = getCartItemsForMeta();
+  return items.reduce((sum, it) => sum + (it.product.price * it.qty), 0);
+}
+
+function getMetaContentIdsFromItems(items) {
+  return items.map(it => it.key);
+}
+
+function trackViewContent(productKey) {
+  const p = PRODUCTS[productKey];
+  if (!p) return;
+  metaTrack('ViewContent', {
+    content_ids: [productKey],
+    content_name: p.name,
+    content_type: 'product',
+    value: p.price,
+    currency: 'CRC'
+  });
+}
+
+function trackAddToCart(productKey, quantity) {
+  const p = PRODUCTS[productKey];
+  if (!p) return;
+  metaTrack('AddToCart', {
+    content_ids: [productKey],
+    content_name: p.name,
+    content_type: 'product',
+    value: p.price * quantity,
+    currency: 'CRC'
+  });
+}
+
+function trackInitiateCheckout() {
+  const items = getCartItemsForMeta();
+  if (items.length === 0) return;
+  metaTrack('InitiateCheckout', {
+    content_ids: getMetaContentIdsFromItems(items),
+    content_type: 'product',
+    num_items: items.reduce((sum, it) => sum + it.qty, 0),
+    value: getCartMetaValue(),
+    currency: 'CRC'
+  });
+}
+
 function formatCRC(amount) {
   return `₡${amount.toLocaleString('es-CR')}`;
 }
@@ -47,10 +121,15 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 
 // --- Cart System ---
 function setCartQty(productKey, qty) {
+  const prevQty = cart[productKey] || 0;
   if (qty <= 0) {
     delete cart[productKey];
   } else {
     cart[productKey] = Math.min(qty, 10);
+  }
+  const nextQty = cart[productKey] || 0;
+  if (nextQty > prevQty && prevQty === 0) {
+    trackAddToCart(productKey, nextQty);
   }
   syncAllQtyDisplays();
   updateTotals();
@@ -133,6 +212,37 @@ bindQtyButtons(document);
 syncAllQtyDisplays();
 updateTotals();
 
+// --- Meta: basic product impressions ---
+function setupMetaViewContentObservers() {
+  const productKeys = Object.keys(PRODUCTS);
+  const seen = new Set();
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const key = entry.target.getAttribute('data-meta-product');
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        trackViewContent(key);
+      });
+    },
+    { threshold: 0.55 }
+  );
+
+  productKeys.forEach(key => {
+    const el = document.querySelector(`.qty-control[data-product="${key}"]`);
+    if (!el) return;
+    const container = el.closest('.patch-detail, .combo-card') || el;
+    container.setAttribute('data-meta-product', key);
+    observer.observe(container);
+  });
+}
+
+if (typeof window !== 'undefined' && typeof IntersectionObserver !== 'undefined') {
+  setupMetaViewContentObservers();
+}
+
 // --- Payment Method ---
 const paymentMethodSelect = document.getElementById('metodo-pago');
 const paymentInfoBox = document.getElementById('payment-info');
@@ -188,7 +298,7 @@ if (orderForm) {
   orderForm.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const entries = Object.entries(cart).filter(([, qty]) => qty > 0);
+    const entries = getCartEntries();
     if (entries.length === 0) {
       showMessage('Por favor, agregá al menos un producto', 'error');
       return;
@@ -207,6 +317,8 @@ if (orderForm) {
       showMessage('Por favor, completá todos los campos requeridos', 'error');
       return;
     }
+
+    trackInitiateCheckout();
 
     showLoading(true);
 
@@ -242,6 +354,11 @@ async function handleSinpePayment(data) {
     `¡Pedido recibido! Número de orden: ${result.orderId}. Revisá tu correo para las instrucciones de pago SINPE.`,
     'success'
   );
+
+  metaTrack('Lead', {
+    value: getCartMetaValue(),
+    currency: 'CRC'
+  });
 
   Object.keys(cart).forEach(k => delete cart[k]);
   orderForm.reset();
