@@ -16,10 +16,12 @@ const SHIPPING_COST = 2600;
 
 const cart = {};
 
-function metaTrack(eventName, params) {
+function metaTrack(eventName, params, options) {
   try {
     if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-      if (params) {
+      if (params && options) {
+        window.fbq('track', eventName, params, options);
+      } else if (params) {
         window.fbq('track', eventName, params);
       } else {
         window.fbq('track', eventName);
@@ -318,12 +320,11 @@ if (orderForm) {
       return;
     }
 
-    trackInitiateCheckout();
-
     showLoading(true);
 
     try {
       if (paymentMethod === 'SINPE') {
+        trackInitiateCheckout();
         await handleSinpePayment(data);
       } else if (paymentMethod === 'Tarjeta') {
         await handleTilopayPayment(data);
@@ -382,6 +383,15 @@ async function handleTilopayPayment(data) {
   showLoading(false);
 
   if (result.paymentUrl) {
+    if (result.metaEventId) {
+      metaTrack('InitiateCheckout', {
+        content_ids: getMetaContentIdsFromItems(getCartItemsForMeta()),
+        content_type: 'product',
+        num_items: getCartItemsForMeta().reduce((sum, it) => sum + it.qty, 0),
+        value: getCartMetaValue(),
+        currency: 'CRC'
+      }, { eventID: result.metaEventId });
+    }
     window.location.href = result.paymentUrl;
   } else {
     throw new Error('No payment URL received');

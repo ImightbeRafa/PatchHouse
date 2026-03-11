@@ -1,5 +1,6 @@
 import { sendOrderEmail } from '../utils/email.js';
 import { sendOrderToBetsyWithRetry } from '../utils/betsy.js';
+import { sendMetaEvent, generateEventId } from '../utils/meta.js';
 import crypto from 'crypto';
 
 const processedWebhooks = new Set();
@@ -121,6 +122,18 @@ export default async function handler(req, res) {
     } catch (betsyError) {
       console.error(`❌ [Webhook] Failed to sync to Betsy CRM:`, betsyError);
     }
+
+    const appUrl = (process.env.APP_URL || 'https://patchhouse.shopping').replace(/\/+$/, '');
+    const metaEventId = generateEventId('purchase', orderId, transactionId);
+    const contentIds = (order.items || []).map(i => i.key).filter(Boolean);
+    const numItems = (order.items || []).reduce((sum, i) => sum + (parseInt(i.qty, 10) || 0), 0);
+    sendMetaEvent('Purchase', metaEventId, order, req, {
+      value: order.total || 0,
+      currency: 'CRC',
+      content_ids: contentIds,
+      content_type: 'product',
+      num_items: numItems
+    }, `${appUrl}/success.html`).catch(() => {});
 
     return res.json({ success: true, orderId, message: 'Payment confirmed and order processed via webhook', webhookId });
 

@@ -203,17 +203,18 @@
         return;
       }
 
-      var purchaseKey = 'meta_purchase_' + (orderId || '') + '_' + (transactionId || '');
+      var metaEventId = 'purchase_' + (orderId || '') + '_' + (transactionId || '');
+      var purchaseStorageKey = 'meta_purchase_' + (orderId || '') + '_' + (transactionId || '');
       function trackPurchaseOnce() {
-        if (sessionStorage.getItem(purchaseKey)) return;
+        if (sessionStorage.getItem(purchaseStorageKey)) return;
         if (!returnData) return;
         try {
           var decoded = atob(returnData);
           var order = JSON.parse(decoded);
           var payload = getPurchasePayloadFromOrder(order);
           if (!payload) return;
-          metaTrack('Purchase', payload, { eventID: purchaseKey });
-          sessionStorage.setItem(purchaseKey, '1');
+          metaTrack('Purchase', payload, { eventID: metaEventId });
+          sessionStorage.setItem(purchaseStorageKey, '1');
         } catch (e) {
         }
       }

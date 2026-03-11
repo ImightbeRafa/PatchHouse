@@ -2,6 +2,8 @@
  * PatchHouse – Tilopay Create Payment (multi-item cart)
  */
 
+import { sendMetaEvent, generateEventId } from '../utils/meta.js';
+
 const PRODUCTS = {
   'focus': { name: 'Focus Patch – 30 parches', price: 9900 },
   'nad': { name: 'NAD Patch – 30 parches', price: 9900 },
@@ -171,9 +173,21 @@ export default async function handler(req, res) {
       throw new Error('No payment URL received from Tilopay');
     }
 
+    const metaEventId = generateEventId('ic', orderId);
+    const contentIds = itemDetails.map(i => i.key);
+    const numItems = itemDetails.reduce((sum, i) => sum + i.qty, 0);
+    sendMetaEvent('InitiateCheckout', metaEventId, orderData, req, {
+      value: total,
+      currency: 'CRC',
+      content_ids: contentIds,
+      content_type: 'product',
+      num_items: numItems
+    }, `${appUrl}/#pedido`).catch(() => {});
+
     return res.json({
       success: true,
       orderId,
+      metaEventId,
       paymentUrl: paymentUrl,
       transactionId: paymentData.id || paymentData.transaction_id
     });
