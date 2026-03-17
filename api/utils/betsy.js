@@ -12,6 +12,22 @@ const PRODUCTS = {
   'combo-full': { name: 'Combo Full House (4 paquetes)', price: 34900 }
 };
 
+// ── Sold-out configuration (keep in sync with src/js/main.js) ──
+const SOLD_OUT = ['stress'];
+
+const COMBO_CONTENTS = {
+  'combo-mente': ['focus', 'nad'],
+  'combo-mood': ['dopamine', 'stress'],
+  'combo-full': ['focus', 'nad', 'dopamine', 'stress']
+};
+
+function isSoldOut(productKey) {
+  if (SOLD_OUT.includes(productKey)) return true;
+  const contents = COMBO_CONTENTS[productKey];
+  if (contents && contents.some(k => SOLD_OUT.includes(k))) return true;
+  return false;
+}
+
 function getOrderItems(orderData) {
   if (orderData.items && Array.isArray(orderData.items)) {
     return orderData.items;

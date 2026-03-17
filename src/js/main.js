@@ -14,6 +14,26 @@ const PRODUCTS = {
 
 const SHIPPING_COST = 2600;
 
+// ── Sold-out configuration ──────────────────────────────────────────
+// Add product keys here to mark them as sold out. Combos that contain
+// a sold-out product are disabled automatically.
+// To revert: simply remove the key from the array and redeploy.
+const SOLD_OUT = ['stress'];
+const SOLD_OUT_MESSAGE = '¡Vuelve pronto! Llega en 10 días';
+
+const COMBO_CONTENTS = {
+  'combo-mente': ['focus', 'nad'],
+  'combo-mood': ['dopamine', 'stress'],
+  'combo-full': ['focus', 'nad', 'dopamine', 'stress']
+};
+
+function isSoldOut(productKey) {
+  if (SOLD_OUT.includes(productKey)) return true;
+  const contents = COMBO_CONTENTS[productKey];
+  if (contents && contents.some(k => SOLD_OUT.includes(k))) return true;
+  return false;
+}
+
 const cart = {};
 
 function metaTrack(eventName, params, options) {
@@ -123,6 +143,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 
 // --- Cart System ---
 function setCartQty(productKey, qty) {
+  if (isSoldOut(productKey)) return;
   const prevQty = cart[productKey] || 0;
   if (qty <= 0) {
     delete cart[productKey];
@@ -213,6 +234,46 @@ function bindQtyButtons(scope) {
 bindQtyButtons(document);
 syncAllQtyDisplays();
 updateTotals();
+
+// --- Sold Out State ---
+function applySoldOutState() {
+  Object.keys(PRODUCTS).forEach(key => {
+    if (!isSoldOut(key)) return;
+
+    // Patch detail sections
+    const detailSection = document.getElementById('patch-' + key);
+    if (detailSection) {
+      detailSection.classList.add('sold-out');
+      const cta = detailSection.querySelector('.patch-detail-cta');
+      if (cta) {
+        cta.innerHTML = `
+          <div class="sold-out-cta">
+            <span class="sold-out-badge">Agotado</span>
+            <span class="sold-out-message">${SOLD_OUT_MESSAGE}</span>
+          </div>
+        `;
+      }
+    }
+
+    // Combo cards
+    document.querySelectorAll(`.combo-card .qty-control[data-product="${key}"]`).forEach(ctrl => {
+      const card = ctrl.closest('.combo-card');
+      if (card) card.classList.add('sold-out');
+    });
+
+    // Checkout picker rows
+    document.querySelectorAll(`.picker-row .qty-control[data-product="${key}"]`).forEach(ctrl => {
+      const row = ctrl.closest('.picker-row');
+      if (row) row.classList.add('sold-out');
+    });
+
+    // Hero cards
+    const heroLink = document.querySelector(`.hero-card[href="#patch-${key}"]`);
+    if (heroLink) heroLink.classList.add('sold-out');
+  });
+}
+
+applySoldOutState();
 
 // --- Meta: basic product impressions ---
 function setupMetaViewContentObservers() {

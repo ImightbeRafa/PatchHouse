@@ -1508,3 +1508,108 @@ a { text-decoration: none; color: inherit; }
   .logo-text { font-size: 22px; }
   .logo-text-lg { font-size: 30px; }
 }
+
+/* ===== SOLD OUT ===== */
+.sold-out-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.sold-out-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+.sold-out-message {
+  font-size: 13px;
+  color: var(--gray-500);
+  font-weight: 500;
+  padding-left: 4px;
+}
+
+.patch-detail.sold-out .patch-detail-inner {
+  opacity: 0.65;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}
+.patch-detail.sold-out .patch-detail-image {
+  position: relative;
+}
+.patch-detail.sold-out .patch-detail-image::after {
+  content: 'AGOTADO';
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  z-index: 2;
+}
+.patch-detail.sold-out .sold-out-cta {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.combo-card.sold-out {
+  position: relative;
+  opacity: 0.6;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}
+.combo-card.sold-out::after {
+  content: 'AGOTADO';
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  z-index: 2;
+}
+
+.picker-row.sold-out {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.picker-row.sold-out .picker-name::after {
+  content: ' — Agotado';
+  color: #e74c3c;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.hero-card.sold-out {
+  position: relative;
+}
+.hero-card.sold-out::after {
+  content: 'AGOTADO';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  border-radius: inherit;
+  z-index: 2;
+}

@@ -16,6 +16,22 @@ const PRODUCTS = {
 
 const SHIPPING_COST = 2600;
 
+// ── Sold-out configuration (keep in sync with src/js/main.js) ──
+const SOLD_OUT = ['stress'];
+
+const COMBO_CONTENTS = {
+  'combo-mente': ['focus', 'nad'],
+  'combo-mood': ['dopamine', 'stress'],
+  'combo-full': ['focus', 'nad', 'dopamine', 'stress']
+};
+
+function isSoldOut(productKey) {
+  if (SOLD_OUT.includes(productKey)) return true;
+  const contents = COMBO_CONTENTS[productKey];
+  if (contents && contents.some(k => SOLD_OUT.includes(k))) return true;
+  return false;
+}
+
 function parseItems(body) {
   let items = [];
   if (body.items) {
@@ -27,7 +43,7 @@ function parseItems(body) {
   } else if (body.producto) {
     items = [{ key: body.producto, qty: parseInt(body.cantidad) || 1 }];
   }
-  return items.filter(i => PRODUCTS[i.key] && i.qty > 0);
+  return items.filter(i => PRODUCTS[i.key] && i.qty > 0 && !isSoldOut(i.key));
 }
 
 async function authenticateTilopay() {
