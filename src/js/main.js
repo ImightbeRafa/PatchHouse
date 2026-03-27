@@ -15,11 +15,15 @@ const PRODUCTS = {
 const SHIPPING_COST = 2600;
 
 // ── Sold-out configuration ──────────────────────────────────────────
-// Add product keys here to mark them as sold out. Combos that contain
-// a sold-out product are disabled automatically.
-// To revert: simply remove the key from the array and redeploy.
-const SOLD_OUT = ['stress'];
-const SOLD_OUT_MESSAGE = '¡Vuelve pronto! Llega en 10 días';
+// Driven by env vars so you can toggle without code changes.
+// VITE_SOLD_OUT        → comma-separated product keys (e.g. "stress,dopamine")
+// VITE_SOLD_OUT_MESSAGE → banner text shown on sold-out products
+// Set them in .env (local) or Vercel dashboard (production).
+const SOLD_OUT = (import.meta.env.VITE_SOLD_OUT || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const SOLD_OUT_MESSAGE = import.meta.env.VITE_SOLD_OUT_MESSAGE || '¡Vuelve pronto! Llega en 10 días';
 
 const COMBO_CONTENTS = {
   'combo-mente': ['focus', 'nad'],
