@@ -5,11 +5,13 @@ const API_BASE_URL = '/api';
 const PRODUCTS = {
   'focus': { name: 'Focus Patch', desc: '30 parches', price: 9900 },
   'nad': { name: 'NAD+ Patch', desc: '30 parches', price: 9900 },
+  'glp1': { name: 'GLP-1 Patch', desc: '30 parches', price: 9900 },
   'dopamine': { name: 'Dopamine Patch', desc: '30 parches', price: 9900 },
   'stress': { name: 'Stress Relief Patch', desc: '30 parches', price: 9900 },
   'combo-mente': { name: 'Combo Mente & Energía', desc: 'Focus + NAD', price: 17900, savings: 1900 },
+  'combo-metabolismo': { name: 'Combo Metabolismo & Energía', desc: 'GLP-1 + NAD', price: 17900, savings: 1900 },
   'combo-mood': { name: 'Combo Mood & Calma', desc: 'Dopamine + Stress', price: 17900, savings: 1900 },
-  'combo-full': { name: 'Combo Full House', desc: '4 paquetes', price: 34900, savings: 4700 }
+  'combo-full': { name: 'Combo Full House', desc: '5 paquetes', price: 42900, savings: 6600 }
 };
 
 const SHIPPING_COST = 2600;
@@ -27,8 +29,9 @@ const SOLD_OUT_MESSAGE = import.meta.env.VITE_SOLD_OUT_MESSAGE || '¡Vuelve pron
 
 const COMBO_CONTENTS = {
   'combo-mente': ['focus', 'nad'],
+  'combo-metabolismo': ['glp1', 'nad'],
   'combo-mood': ['dopamine', 'stress'],
-  'combo-full': ['focus', 'nad', 'dopamine', 'stress']
+  'combo-full': ['focus', 'nad', 'glp1', 'dopamine', 'stress']
 };
 
 function isSoldOut(productKey) {
@@ -76,6 +79,11 @@ function getCartMetaValue() {
   return items.reduce((sum, it) => sum + (it.product.price * it.qty), 0);
 }
 
+function getCartMetaTotal() {
+  const subtotal = getCartMetaValue();
+  return subtotal > 0 ? subtotal + SHIPPING_COST : 0;
+}
+
 function getMetaContentIdsFromItems(items) {
   return items.map(it => it.key);
 }
@@ -111,7 +119,7 @@ function trackInitiateCheckout() {
     content_ids: getMetaContentIdsFromItems(items),
     content_type: 'product',
     num_items: items.reduce((sum, it) => sum + it.qty, 0),
-    value: getCartMetaValue(),
+    value: getCartMetaTotal(),
     currency: 'CRC'
   });
 }
@@ -422,9 +430,9 @@ async function handleSinpePayment(data) {
   );
 
   metaTrack('Lead', {
-    value: getCartMetaValue(),
+    value: getCartMetaTotal(),
     currency: 'CRC'
-  });
+  }, result.metaEventId ? { eventID: result.metaEventId } : undefined);
 
   Object.keys(cart).forEach(k => delete cart[k]);
   orderForm.reset();
@@ -453,7 +461,7 @@ async function handleTilopayPayment(data) {
         content_ids: getMetaContentIdsFromItems(getCartItemsForMeta()),
         content_type: 'product',
         num_items: getCartItemsForMeta().reduce((sum, it) => sum + it.qty, 0),
-        value: getCartMetaValue(),
+        value: getCartMetaTotal(),
         currency: 'CRC'
       }, { eventID: result.metaEventId });
     }

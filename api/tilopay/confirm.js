@@ -79,7 +79,7 @@ export default async function handler(req, res) {
     const metaEventId = generateEventId('purchase', orderId, transactionId);
     const contentIds = (order.items || []).map(i => i.key).filter(Boolean);
     const numItems = (order.items || []).reduce((sum, i) => sum + (parseInt(i.qty, 10) || 0), 0);
-    sendMetaEvent('Purchase', metaEventId, order, req, {
+    await sendMetaEvent('Purchase', metaEventId, order, req, {
       value: order.total || 0,
       currency: 'CRC',
       content_ids: contentIds,

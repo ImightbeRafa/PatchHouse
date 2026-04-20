@@ -110,11 +110,16 @@ export async function sendMetaEvent(eventName, eventId, order, req, customData, 
 
     console.log(`📡 [Meta CAPI] Sending ${eventName} event (id: ${eventId})`);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
     const response = await fetch(GRAPH_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     const result = await response.json();
 
