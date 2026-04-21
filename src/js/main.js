@@ -296,7 +296,7 @@ function setupMetaViewContentObservers() {
   productKeys.forEach(key => {
     const el = document.querySelector(`.qty-control[data-product="${key}"]`);
     if (!el) return;
-    const container = el.closest('.patch-detail, .combo-card') || el;
+    const container = el.closest('.patch-detail, .combo-card, .glp-feature') || el;
     container.setAttribute('data-meta-product', key);
     observer.observe(container);
   });

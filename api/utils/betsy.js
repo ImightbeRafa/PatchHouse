@@ -120,8 +120,6 @@ export async function sendOrderToBetsy(orderData) {
       },
     };
 
-    console.log('📦 [Betsy] Order payload:', JSON.stringify(betsyOrder, null, 2));
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 

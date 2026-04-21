@@ -240,11 +240,7 @@ export async function sendOrderEmail(order) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const notificationEmail = process.env.ORDER_NOTIFICATION_EMAIL;
 
-  console.log('📧 [Email] === RESEND DIAGNOSTICS ===');
-  console.log('📧 [Email] RESEND_API_KEY set:', !!resendApiKey);
-  console.log('📧 [Email] ORDER_NOTIFICATION_EMAIL:', notificationEmail || 'NOT SET');
-  console.log('📧 [Email] Customer email:', order.email || 'NOT PROVIDED');
-  console.log('📧 [Email] Order ID:', order.orderId);
+  console.log('📧 [Email] Sending order emails:', order.orderId);
 
   if (!resendApiKey) {
     throw new Error('RESEND_API_KEY not configured');
@@ -261,16 +257,16 @@ export async function sendOrderEmail(order) {
     try {
       const customerResult = await sendCustomerEmail(order);
       customerEmailSent = true;
-      console.log('✅ [Email] Customer email sent to:', order.email, 'Result:', JSON.stringify(customerResult));
+      console.log('✅ [Email] Customer email sent:', order.orderId);
     } catch (error) {
       console.error('❌ [Email] Customer email FAILED:', error.message);
     }
   }
 
   try {
-    const adminResult = await sendAdminEmail(order);
+    await sendAdminEmail(order);
     adminEmailSent = true;
-    console.log('✅ [Email] Admin email sent to:', notificationEmail, 'Result:', JSON.stringify(adminResult));
+    console.log('✅ [Email] Admin email sent:', order.orderId);
   } catch (error) {
     console.error('❌ [Email] Admin email FAILED:', error.message);
   }

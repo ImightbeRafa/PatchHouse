@@ -49,7 +49,6 @@ export default async function handler(req, res) {
 
   try {
     const payload = req.body;
-    console.log(`📦 [Webhook] Payload:`, JSON.stringify(payload, null, 2));
 
     const isVerified = verifyWebhookSignature(req);
     if (!isVerified) {
