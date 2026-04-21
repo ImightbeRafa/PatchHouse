@@ -503,7 +503,7 @@
         </div>
         <div class="shipping-features">
           <div class="ship-feat"><span>&#10003;</span> Retiro en San Rafael y zonas cercanas</div>
-          <div class="ship-feat"><span>&#10003;</span> Pedidos contra entrega</div>
+          <div class="ship-feat"><span>&#10003;</span> Pago seguro con tarjeta</div>
           <div class="ship-feat"><span>&#10003;</span> Cobertura nacional</div>
         </div>
       </div>
@@ -544,7 +544,7 @@
         </div>
         <div class="faq-item">
           <button class="faq-question">¿Qué métodos de pago aceptan?<span class="faq-icon">+</span></button>
-          <div class="faq-answer"><p>SINPE Móvil, tarjetas de crédito y débito (Tilopay), y pedidos contra entrega.</p></div>
+          <div class="faq-answer"><p>Tarjetas de crédito y débito por medio de Tilopay.</p></div>
         </div>
       </div>
     </div>
@@ -713,15 +713,14 @@
             </div>
 
             <div class="form-section-title">Pago</div>
-            <div class="form-group">
-              <label for="metodo-pago">Método de pago</label>
-              <select id="metodo-pago" name="metodo-pago" required>
-                <option value="">Seleccioná</option>
-                <option value="SINPE">SINPE Móvil</option>
-                <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
-              </select>
+            <input type="hidden" id="metodo-pago" name="metodo-pago" value="Tarjeta">
+            <div id="payment-info" class="payment-info">
+              <div class="payment-instructions tilopay">
+                <h4>Pago con tarjeta</h4>
+                <p>Serás redirigido a la pasarela segura de Tilopay para completar tu compra.</p>
+                <p>Aceptamos tarjetas de crédito y débito.</p>
+              </div>
             </div>
-            <div id="payment-info" class="payment-info" style="display:none;"></div>
 
             <div class="form-group">
               <label for="comentarios">Comentarios (opcional)</label>

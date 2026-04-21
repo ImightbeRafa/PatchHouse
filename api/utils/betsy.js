@@ -59,16 +59,9 @@ export async function sendOrderToBetsy(orderData) {
     const paymentStatus = orderData.paymentStatus === 'completed' ? 'PAGADO' : 'PENDIENTE';
     const transactionId = orderData.paymentId || orderData.transactionId || 'PENDING';
 
-    let paymentComment = '';
-    if (paymentMethod === 'SINPE') {
-      paymentComment = `Pago: SINPE Móvil - Estado: Pendiente de confirmación`;
-    } else if (paymentMethod === 'Tilopay' || paymentMethod === 'Tarjeta') {
-      paymentComment = paymentStatus === 'PAGADO'
-        ? `Pago: Tarjeta (Tilopay) - Estado: PAGADO - ID Transacción: ${transactionId}`
-        : `Pago: Tarjeta (Tilopay) - Estado: Pendiente`;
-    } else {
-      paymentComment = `Pago: ${paymentMethod} - Estado: ${paymentStatus}`;
-    }
+    const paymentComment = paymentStatus === 'PAGADO'
+      ? `Pago: Tarjeta (Tilopay) - Estado: PAGADO - ID Transacción: ${transactionId}`
+      : `Pago: Tarjeta (Tilopay) - Estado: Pendiente`;
 
     const items = getOrderItems(orderData);
     const productLines = items.map(i => `${i.name} x${i.qty} — ₡${(i.price * i.qty).toLocaleString('es-CR')}`);
@@ -109,7 +102,7 @@ export async function sendOrderToBetsy(orderData) {
       payment: {
         method: paymentMethod,
         transactionId: transactionId,
-        status: 'PENDIENTE',
+        status: paymentStatus,
         date: new Date().toLocaleString('es-CR', {
           timeZone: 'America/Costa_Rica',
           year: 'numeric', month: '2-digit', day: '2-digit',

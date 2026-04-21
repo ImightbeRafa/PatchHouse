@@ -112,18 +112,6 @@ function trackAddToCart(productKey, quantity) {
   });
 }
 
-function trackInitiateCheckout() {
-  const items = getCartItemsForMeta();
-  if (items.length === 0) return;
-  metaTrack('InitiateCheckout', {
-    content_ids: getMetaContentIdsFromItems(items),
-    content_type: 'product',
-    num_items: items.reduce((sum, it) => sum + it.qty, 0),
-    value: getCartMetaTotal(),
-    currency: 'CRC'
-  });
-}
-
 function formatCRC(amount) {
   return `₡${amount.toLocaleString('es-CR')}`;
 }
@@ -318,44 +306,6 @@ if (typeof window !== 'undefined' && typeof IntersectionObserver !== 'undefined'
   setupMetaViewContentObservers();
 }
 
-// --- Payment Method ---
-const paymentMethodSelect = document.getElementById('metodo-pago');
-const paymentInfoBox = document.getElementById('payment-info');
-
-if (paymentMethodSelect && paymentInfoBox) {
-  paymentMethodSelect.addEventListener('change', function () {
-    const method = this.value;
-    if (method === 'SINPE') {
-      paymentInfoBox.style.display = 'block';
-      paymentInfoBox.innerHTML = `
-        <div class="payment-instructions sinpe">
-          <h4>SINPE Móvil</h4>
-          <div style="background: #f8f8f9; padding: 14px; border-radius: 10px; margin: 12px 0; border-left: 3px solid var(--primary, #3a8f6a);">
-            <p style="margin: 4px 0;"><strong>Número:</strong> <span style="font-size: 1.05em; color: #3a3a4a;">6201-9914</span></p>
-            <p style="margin: 4px 0;"><strong>Nombre:</strong> Rafael Garcia</p>
-          </div>
-          <ul>
-            <li>Usá el número de tu orden en el concepto del SINPE</li>
-            <li>Guardá el comprobante de pago</li>
-            <li>Enviá el comprobante por <a href="https://wa.me/50670526254" target="_blank" style="color: var(--primary, #3a8f6a); font-weight: 600;">WhatsApp</a></li>
-          </ul>
-        </div>
-      `;
-    } else if (method === 'Tarjeta') {
-      paymentInfoBox.style.display = 'block';
-      paymentInfoBox.innerHTML = `
-        <div class="payment-instructions tilopay">
-          <h4>Pago con Tarjeta</h4>
-          <p>Serás redirigido a la pasarela de pago segura de Tilopay para completar tu compra.</p>
-          <p>Aceptamos todas las tarjetas de crédito y débito.</p>
-        </div>
-      `;
-    } else {
-      paymentInfoBox.style.display = 'none';
-    }
-  });
-}
-
 // --- FAQ Accordion ---
 document.querySelectorAll('.faq-question').forEach(question => {
   question.addEventListener('click', function () {
@@ -382,12 +332,6 @@ if (orderForm) {
     const formData = new FormData(orderForm);
     const data = Object.fromEntries(formData);
 
-    const paymentMethod = data['metodo-pago'];
-    if (!paymentMethod) {
-      showMessage('Por favor, seleccioná un método de pago', 'error');
-      return;
-    }
-
     if (!data.nombre || !data.telefono || !data.email || !data.provincia || !data.canton || !data.distrito || !data.direccion) {
       showMessage('Por favor, completá todos los campos requeridos', 'error');
       return;
@@ -396,48 +340,13 @@ if (orderForm) {
     showLoading(true);
 
     try {
-      if (paymentMethod === 'SINPE') {
-        trackInitiateCheckout();
-        await handleSinpePayment(data);
-      } else if (paymentMethod === 'Tarjeta') {
-        await handleTilopayPayment(data);
-      }
+      await handleTilopayPayment(data);
     } catch (error) {
       console.error('Payment error:', error);
       showMessage('Error al procesar el pedido. Por favor, intentá de nuevo.', 'error');
       showLoading(false);
     }
   });
-}
-
-async function handleSinpePayment(data) {
-  const response = await fetch(`${API_BASE_URL}/email/send-sinpe`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-
-  if (!response.ok) throw new Error('Failed to process SINPE order');
-
-  const result = await response.json();
-  showLoading(false);
-
-  if (paymentInfoBox) paymentInfoBox.style.display = 'none';
-
-  showMessage(
-    `¡Pedido recibido! Número de orden: ${result.orderId}. Revisá tu correo para las instrucciones de pago SINPE.`,
-    'success'
-  );
-
-  metaTrack('Lead', {
-    value: getCartMetaTotal(),
-    currency: 'CRC'
-  }, result.metaEventId ? { eventID: result.metaEventId } : undefined);
-
-  Object.keys(cart).forEach(k => delete cart[k]);
-  orderForm.reset();
-  syncAllQtyDisplays();
-  updateTotals();
 }
 
 async function handleTilopayPayment(data) {
