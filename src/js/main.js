@@ -14,7 +14,7 @@ const PRODUCTS = {
   'combo-full': { name: 'Combo Full House', desc: '5 paquetes', price: 42900, savings: 6600 }
 };
 
-const SHIPPING_COST = 2600;
+const SHIPPING_COST = 3000;
 
 // ── Sold-out configuration ──────────────────────────────────────────
 // Driven by env vars so you can toggle without code changes.

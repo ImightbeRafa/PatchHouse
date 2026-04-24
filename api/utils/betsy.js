@@ -89,7 +89,7 @@ export async function sendOrderToBetsy(orderData) {
         unitPrice: `₡${orderData.subtotal ? orderData.subtotal.toLocaleString('es-CR') : '0'}`,
       },
       shipping: {
-        cost: `₡2.600`,
+        cost: `₡3.000`,
         courier: 'Correos de Costa Rica',
         address: {
           province: orderData.provincia,

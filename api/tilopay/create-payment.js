@@ -16,7 +16,7 @@ const PRODUCTS = {
   'combo-full': { name: 'Combo Full House (5 paquetes)', price: 42900 }
 };
 
-const SHIPPING_COST = 2600;
+const SHIPPING_COST = 3000;
 
 // ── Sold-out configuration (keep in sync with src/js/main.js) ──
 const SOLD_OUT = (process.env.VITE_SOLD_OUT || process.env.SOLD_OUT || '')

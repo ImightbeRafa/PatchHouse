@@ -89,7 +89,7 @@ async function sendCustomerEmail(order) {
           </table>
           <br>
           ${order.subtotal ? `<p><span class="label">Subtotal:</span> ₡${order.subtotal.toLocaleString('es-CR')}</p>` : ''}
-          <p><span class="label">Envío:</span> ₡2.600</p>
+          <p><span class="label">Envío:</span> ₡3.000</p>
           <p><span class="label">Total:</span> <strong>₡${order.total.toLocaleString('es-CR')}</strong></p>
         </div>
 
@@ -177,7 +177,7 @@ async function sendAdminEmail(order) {
         <h3>Productos:</h3>
         <p class="info-item">${itemsSummary}</p>
         ${order.subtotal ? `<p class="info-item"><span class="label">Subtotal:</span> ₡${order.subtotal.toLocaleString('es-CR')}</p>` : ''}
-        <p class="info-item"><span class="label">Envío:</span> ₡2.600</p>
+        <p class="info-item"><span class="label">Envío:</span> ₡3.000</p>
         <p class="info-item"><span class="label total">Total:</span> <span class="total">₡${order.total.toLocaleString('es-CR')}</span></p>
       </div>
 
