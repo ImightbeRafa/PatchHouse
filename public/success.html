@@ -103,13 +103,13 @@
       <div class="state-icon icon-success">
         <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
       </div>
-      <h1>¡Pago Exitoso!</h1>
-      <p>Tu pago ha sido procesado correctamente y tu orden de PatchHouse está confirmada.</p>
+      <h1 id="success-title">¡Pago Exitoso!</h1>
+      <p id="success-description">Tu pago ha sido procesado correctamente y tu orden de PatchHouse está confirmada.</p>
       <div class="order-id">
         <label>Número de Orden</label>
         <strong id="order-number">—</strong>
       </div>
-      <p>Recibirás un correo electrónico con los detalles de tu pedido. Te contactaremos pronto para coordinar el envío.</p>
+      <p id="success-next-step">Recibirás un correo electrónico con los detalles de tu pedido. Te contactaremos pronto para coordinar el envío.</p>
       <a href="/" class="btn">Volver al Inicio</a>
       <div class="contact-info">
         <p>¿Tenés preguntas?</p>
@@ -133,36 +133,6 @@
 
   <script>
     (function() {
-      function metaTrack(eventName, params, options) {
-        try {
-          if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-            if (params && options) {
-              window.fbq('track', eventName, params, options);
-              return;
-            }
-            if (params) {
-              window.fbq('track', eventName, params);
-              return;
-            }
-            window.fbq('track', eventName);
-          }
-        } catch {
-        }
-      }
-
-      function getPurchasePayloadFromOrder(order) {
-        if (!order || !order.total || !Array.isArray(order.items)) return null;
-        var contentIds = order.items.map(function(i) { return i.key; }).filter(Boolean);
-        var numItems = order.items.reduce(function(sum, i) { return sum + (parseInt(i.qty, 10) || 0); }, 0);
-        return {
-          value: Number(order.total) || 0,
-          currency: 'CRC',
-          content_ids: contentIds,
-          content_type: 'product',
-          num_items: numItems
-        };
-      }
-
       function showView(name) {
         document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
         var el = document.getElementById('view-' + name);
@@ -196,35 +166,6 @@
         return;
       }
 
-      var confirmKey = 'confirmed_' + (orderId || '') + '_' + (transactionId || '');
-      if (sessionStorage.getItem(confirmKey)) {
-        document.getElementById('order-number').textContent = orderId || '—';
-        showView('success');
-        return;
-      }
-
-      var metaEventId = 'purchase_' + (orderId || '') + '_' + (transactionId || '');
-      var purchaseStorageKey = 'meta_purchase_' + (orderId || '') + '_' + (transactionId || '');
-      function trackPurchaseOnce() {
-        if (sessionStorage.getItem(purchaseStorageKey)) return;
-        if (!returnData) return;
-        try {
-          var decoded = atob(returnData);
-          var order = JSON.parse(decoded);
-          var payload = getPurchasePayloadFromOrder(order);
-          if (!payload) return;
-          metaTrack('Purchase', payload, { eventID: metaEventId });
-          sessionStorage.setItem(purchaseStorageKey, '1');
-        } catch (e) {
-        }
-      }
-
-      if (!returnData) {
-        document.getElementById('order-number').textContent = orderId || '—';
-        showView('success');
-        return;
-      }
-
       fetch('/api/tilopay/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,10 +177,16 @@
       .then(function(response) { return response.json(); })
       .then(function(data) {
         if (data.success || data.alreadyProcessed) {
-          sessionStorage.setItem(confirmKey, '1');
           document.getElementById('order-number').textContent = orderId || '—';
           showView('success');
-          trackPurchaseOnce();
+        } else if (data.pending) {
+          document.getElementById('success-title').textContent = 'Pago en Verificación';
+          document.getElementById('success-description').textContent =
+            'Recibimos la respuesta de Tilopay, pero tu orden se confirmará solo cuando Tilopay nos envíe la notificación segura del pago.';
+          document.getElementById('success-next-step').textContent =
+            'Si el pago fue aprobado, recibirás el correo de confirmación cuando termine la verificación automática.';
+          document.getElementById('order-number').textContent = orderId || '—';
+          showView('success');
         } else {
           showView('error');
           document.getElementById('error-description').textContent =

@@ -2,17 +2,7 @@
  * Resend Email Integration – PatchHouse (multi-item)
  */
 
-const PRODUCTS = {
-  'focus': { name: 'Focus Patch – 30 parches', price: 9900 },
-  'nad': { name: 'NAD Patch – 30 parches', price: 9900 },
-  'glp1': { name: 'GLP-1 Patch – 30 parches', price: 9900 },
-  'dopamine': { name: 'Dopamine Patch – 30 parches', price: 9900 },
-  'stress': { name: 'Stress Relief Patch – 30 parches', price: 9900 },
-  'combo-mente': { name: 'Combo Mente & Energía (Focus + NAD)', price: 17900 },
-  'combo-metabolismo': { name: 'Combo Metabolismo & Energía (GLP-1 + NAD)', price: 17900 },
-  'combo-mood': { name: 'Combo Mood & Calma (Dopamine + Stress)', price: 17900 },
-  'combo-full': { name: 'Combo Full House (5 paquetes)', price: 42900 }
-};
+import { normalizeTrustedOrder } from './order.js';
 
 function esc(str) {
   if (!str) return '';
@@ -24,12 +14,7 @@ function esc(str) {
 }
 
 function getOrderItems(order) {
-  if (order.items && Array.isArray(order.items)) {
-    return order.items;
-  }
-  const key = order.producto || 'focus';
-  const product = PRODUCTS[key] || PRODUCTS['focus'];
-  return [{ key, name: product.name, price: product.price, qty: parseInt(order.cantidad) || 1, lineTotal: product.price * (parseInt(order.cantidad) || 1) }];
+  return normalizeTrustedOrder(order).items;
 }
 
 function buildItemsHtml(items) {
@@ -44,6 +29,7 @@ function buildItemsHtml(items) {
 
 async function sendCustomerEmail(order) {
   const resendApiKey = process.env.RESEND_API_KEY;
+  order = normalizeTrustedOrder(order);
   const items = getOrderItems(order);
 
   const customerEmailHtml = `
@@ -141,6 +127,7 @@ async function sendCustomerEmail(order) {
 async function sendAdminEmail(order) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const notificationEmail = process.env.ORDER_NOTIFICATION_EMAIL;
+  order = normalizeTrustedOrder(order);
   const items = getOrderItems(order);
 
   const itemsSummary = items.map(i => `${esc(i.name)} x${i.qty} — ₡${(i.price * i.qty).toLocaleString('es-CR')}`).join('<br>');
@@ -239,6 +226,7 @@ async function sendAdminEmail(order) {
 export async function sendOrderEmail(order) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const notificationEmail = process.env.ORDER_NOTIFICATION_EMAIL;
+  order = normalizeTrustedOrder(order);
 
   console.log('📧 [Email] Sending order emails:', order.orderId);
 

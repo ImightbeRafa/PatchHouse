@@ -1,6 +1,7 @@
 import { sendOrderEmail } from '../utils/email.js';
 import { sendOrderToBetsyWithRetry } from '../utils/betsy.js';
 import { sendMetaEvent, generateEventId } from '../utils/meta.js';
+import { decodeReturnData, findOrderTotalMismatch, normalizeTrustedOrder } from '../utils/order.js';
 import crypto from 'crypto';
 
 const processedWebhooks = new Set();
@@ -8,8 +9,12 @@ const processedWebhooks = new Set();
 function verifyWebhookSignature(req) {
   const expectedSecret = process.env.TILOPAY_WEBHOOK_SECRET || '';
   if (!expectedSecret) {
-    console.warn('⚠️ [Webhook] TILOPAY_WEBHOOK_SECRET not configured — skipping verification');
-    return true;
+    if (process.env.TILOPAY_ALLOW_UNSIGNED_WEBHOOKS === 'true') {
+      console.warn('[Webhook] TILOPAY_WEBHOOK_SECRET missing; unsigned webhooks allowed by env override');
+      return true;
+    }
+    console.error('[Webhook] TILOPAY_WEBHOOK_SECRET not configured; refusing to process payment webhook');
+    return false;
   }
 
   const providedSecret = req.headers['x-tilopay-secret'] || '';
@@ -88,21 +93,30 @@ export default async function handler(req, res) {
       return res.json({ success: true, orderId, message: 'Webhook received but status unknown', webhookId });
     }
 
-    processedWebhooks.add(dedupeKey);
-
     let order = null;
     const returnData = payload.returnData || payload.return_data;
     if (returnData) {
       try {
-        const decoded = Buffer.from(returnData, 'base64').toString('utf-8');
-        order = JSON.parse(decoded);
+        order = decodeReturnData(returnData);
+        const { normalized, mismatches } = findOrderTotalMismatch(order);
+        if (mismatches.length > 0) {
+          console.warn(`[Webhook] Corrected untrusted order totals for ${orderId}: ${mismatches.join('; ')}`);
+        }
+        order = normalized;
       } catch (e) {
         console.warn(`⚠️ [Webhook] Could not decode returnData: ${e.message}`);
       }
     }
 
     if (!order) {
-      return res.json({ success: true, orderId, message: 'Payment approved — order will be processed via redirect confirm', webhookId });
+      console.error(`[Webhook] Approved payment ${orderId} did not include returnData; not sending order email`);
+      return res.status(422).json({ success: false, orderId, error: 'Approved payment missing returnData', webhookId });
+    }
+
+    order = normalizeTrustedOrder(order);
+    if (!order.nombre || !order.email || !order.telefono || !order.total || !Array.isArray(order.items) || order.items.length === 0) {
+      console.error(`[Webhook] Approved payment ${orderId} missing complete trusted order data; not sending order email`);
+      return res.status(422).json({ success: false, orderId, error: 'Incomplete trusted order data', webhookId });
     }
 
     order.paymentStatus = 'completed';
@@ -110,17 +124,27 @@ export default async function handler(req, res) {
     order.paymentMethod = 'Tilopay';
     order.paidAt = new Date().toISOString();
 
+    let betsyResult;
+    try {
+      betsyResult = await sendOrderToBetsyWithRetry({ ...order, paymentMethod: 'Tilopay', transactionId });
+    } catch (betsyError) {
+      console.error(`❌ [Webhook] Failed to sync to Betsy CRM:`, betsyError);
+      return res.status(502).json({ success: false, orderId, error: 'Betsy CRM sync failed', webhookId });
+    }
+
+    if (!betsyResult || !betsyResult.success) {
+      console.error(`[Webhook] Betsy CRM sync failed for ${orderId}: ${betsyResult?.error || 'unknown error'}`);
+      return res.status(502).json({ success: false, orderId, error: 'Betsy CRM sync failed', webhookId });
+    }
+
     try {
       await sendOrderEmail(order);
     } catch (emailError) {
       console.error(`❌ [Webhook] Failed to send email:`, emailError);
+      return res.status(502).json({ success: false, orderId, error: 'Order email failed', webhookId });
     }
 
-    try {
-      await sendOrderToBetsyWithRetry({ ...order, paymentMethod: 'Tilopay', transactionId });
-    } catch (betsyError) {
-      console.error(`❌ [Webhook] Failed to sync to Betsy CRM:`, betsyError);
-    }
+    processedWebhooks.add(dedupeKey);
 
     const appUrl = (process.env.APP_URL || 'https://patchhouse.shopping').replace(/\/+$/, '');
     const metaEventId = generateEventId('purchase', orderId, transactionId);

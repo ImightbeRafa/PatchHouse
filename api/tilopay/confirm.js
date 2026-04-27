@@ -1,8 +1,4 @@
-import { sendOrderEmail } from '../utils/email.js';
-import { sendOrderToBetsyWithRetry } from '../utils/betsy.js';
-import { sendMetaEvent, generateEventId } from '../utils/meta.js';
-
-const processedOrders = new Set();
+import { decodeReturnData, findOrderTotalMismatch } from '../utils/order.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -13,84 +9,48 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== 'POST') { return res.status(405).json({ error: 'Method not allowed' }); }
 
-  console.log('📨 [Confirm] Payment confirmation request');
+  console.log('[Confirm] Browser redirect received');
 
   try {
     const { orderId, transactionId, code, returnData } = req.body;
 
     if (!orderId) {
-      return res.status(400).json({ error: 'Order ID required' });
-    }
-    if (!returnData) {
-      return res.status(400).json({ error: 'Missing order data (returnData)' });
-    }
-
-    console.log(`📋 [Confirm] Order: ${orderId}, Transaction: ${transactionId}, Code: ${code}`);
-
-    const dedupeKey = `${orderId}_${transactionId || ''}`;
-    if (processedOrders.has(dedupeKey)) {
-      console.log(`⚠️ [Confirm] Order ${orderId} already processed — skipping duplicate`);
-      return res.json({ success: true, alreadyProcessed: true, message: 'Order already processed', orderId });
+      return res.status(400).json({ success: false, error: 'Order ID required' });
     }
 
     const isPaymentApproved = code === '1' || code === 1 || String(code) === '1';
     if (!isPaymentApproved) {
-      console.log(`❌ [Confirm] Payment declined for order ${orderId}, code: ${code}`);
-      return res.status(400).json({ success: false, error: 'Payment declined', message: 'Payment was not approved', code });
+      console.log(`[Confirm] Redirect declined for order ${orderId}, code: ${code}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Payment declined',
+        message: 'Payment was not approved by redirect parameters',
+        code
+      });
     }
 
-    let order;
-    try {
-      const decodedData = Buffer.from(returnData, 'base64').toString('utf-8');
-      order = JSON.parse(decodedData);
-    } catch (decodeError) {
-      console.error(`❌ [Confirm] Failed to decode returnData:`, decodeError);
-      return res.status(400).json({ error: 'Invalid order data', message: 'Could not decode order information' });
+    if (returnData) {
+      try {
+        const order = decodeReturnData(returnData);
+        const { mismatches } = findOrderTotalMismatch(order);
+        if (mismatches.length > 0) {
+          console.warn(`[Confirm] Ignoring untrusted redirect totals for order ${orderId}: ${mismatches.join('; ')}`);
+        }
+      } catch (decodeError) {
+        console.warn(`[Confirm] Could not decode untrusted returnData for order ${orderId}: ${decodeError.message}`);
+      }
     }
 
-    if (!order.nombre || !order.email || !order.total) {
-      return res.status(400).json({ error: 'Incomplete order data', message: 'Order is missing required fields' });
-    }
-
-    processedOrders.add(dedupeKey);
-
-    order.paymentStatus = 'completed';
-    order.paymentId = transactionId;
-    order.paymentMethod = 'Tilopay';
-    order.paidAt = new Date().toISOString();
-
-    console.log(`✅ [Confirm] Order ${orderId} confirmed as paid`);
-
-    try {
-      await sendOrderEmail(order);
-      console.log(`📧 [Confirm] Emails sent for order ${orderId}`);
-    } catch (emailError) {
-      console.error(`❌ [Confirm] Failed to send emails:`, emailError);
-    }
-
-    try {
-      await sendOrderToBetsyWithRetry({ ...order, paymentMethod: 'Tilopay', transactionId });
-      console.log(`✅ [Confirm] Order synced to Betsy CRM: ${orderId}`);
-    } catch (betsyError) {
-      console.error(`❌ [Confirm] Failed to sync order to Betsy CRM:`, betsyError);
-    }
-
-    const appUrl = (process.env.APP_URL || 'https://patchhouse.shopping').replace(/\/+$/, '');
-    const metaEventId = generateEventId('purchase', orderId, transactionId);
-    const contentIds = (order.items || []).map(i => i.key).filter(Boolean);
-    const numItems = (order.items || []).reduce((sum, i) => sum + (parseInt(i.qty, 10) || 0), 0);
-    await sendMetaEvent('Purchase', metaEventId, order, req, {
-      value: order.total || 0,
-      currency: 'CRC',
-      content_ids: contentIds,
-      content_type: 'product',
-      num_items: numItems
-    }, `${appUrl}/success.html`).catch(() => {});
-
-    return res.json({ success: true, message: 'Payment confirmed, emails sent, and order synced to CRM', orderId });
-
+    console.log(`[Confirm] Order ${orderId} is waiting for server-side Tilopay webhook confirmation`);
+    return res.status(202).json({
+      success: false,
+      pending: true,
+      orderId,
+      transactionId,
+      message: 'Redirect received. Order will only be processed after the Tilopay server webhook confirms payment.'
+    });
   } catch (error) {
-    console.error(`❌ [Confirm] Error:`, error);
-    return res.status(500).json({ error: 'Confirmation failed', message: error.message });
+    console.error('[Confirm] Error:', error);
+    return res.status(500).json({ success: false, error: 'Confirmation failed', message: error.message });
   }
 }

@@ -3,20 +3,7 @@
  */
 
 import { sendMetaEvent, generateEventId } from '../utils/meta.js';
-
-const PRODUCTS = {
-  'focus': { name: 'Focus Patch – 30 parches', price: 9900 },
-  'nad': { name: 'NAD Patch – 30 parches', price: 9900 },
-  'glp1': { name: 'GLP-1 Patch – 30 parches', price: 9900 },
-  'dopamine': { name: 'Dopamine Patch – 30 parches', price: 9900 },
-  'stress': { name: 'Stress Relief Patch – 30 parches', price: 9900 },
-  'combo-mente': { name: 'Combo Mente & Energía (Focus + NAD)', price: 17900 },
-  'combo-metabolismo': { name: 'Combo Metabolismo & Energía (GLP-1 + NAD)', price: 17900 },
-  'combo-mood': { name: 'Combo Mood & Calma (Dopamine + Stress)', price: 17900 },
-  'combo-full': { name: 'Combo Full House (5 paquetes)', price: 42900 }
-};
-
-const SHIPPING_COST = 3000;
+import { PRODUCTS, SHIPPING_COST } from '../utils/order.js';
 
 // ── Sold-out configuration (keep in sync with src/js/main.js) ──
 const SOLD_OUT = (process.env.VITE_SOLD_OUT || process.env.SOLD_OUT || '')

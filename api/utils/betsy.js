@@ -2,50 +2,16 @@
  * Betsy CRM Integration Utility – PatchHouse (multi-item)
  */
 
-const PRODUCTS = {
-  'focus': { name: 'Focus Patch – 30 parches', price: 9900 },
-  'nad': { name: 'NAD Patch – 30 parches', price: 9900 },
-  'glp1': { name: 'GLP-1 Patch – 30 parches', price: 9900 },
-  'dopamine': { name: 'Dopamine Patch – 30 parches', price: 9900 },
-  'stress': { name: 'Stress Relief Patch – 30 parches', price: 9900 },
-  'combo-mente': { name: 'Combo Mente & Energía (Focus + NAD)', price: 17900 },
-  'combo-metabolismo': { name: 'Combo Metabolismo & Energía (GLP-1 + NAD)', price: 17900 },
-  'combo-mood': { name: 'Combo Mood & Calma (Dopamine + Stress)', price: 17900 },
-  'combo-full': { name: 'Combo Full House (5 paquetes)', price: 42900 }
-};
-
-// ── Sold-out configuration (keep in sync with src/js/main.js) ──
-const SOLD_OUT = (process.env.VITE_SOLD_OUT || process.env.SOLD_OUT || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
-const COMBO_CONTENTS = {
-  'combo-mente': ['focus', 'nad'],
-  'combo-metabolismo': ['glp1', 'nad'],
-  'combo-mood': ['dopamine', 'stress'],
-  'combo-full': ['focus', 'nad', 'glp1', 'dopamine', 'stress']
-};
-
-function isSoldOut(productKey) {
-  if (SOLD_OUT.includes(productKey)) return true;
-  const contents = COMBO_CONTENTS[productKey];
-  if (contents && contents.some(k => SOLD_OUT.includes(k))) return true;
-  return false;
-}
+import { normalizeTrustedOrder } from './order.js';
 
 function getOrderItems(orderData) {
-  if (orderData.items && Array.isArray(orderData.items)) {
-    return orderData.items;
-  }
-  const key = orderData.producto || 'focus';
-  const product = PRODUCTS[key] || PRODUCTS['focus'];
-  return [{ key, name: product.name, price: product.price, qty: parseInt(orderData.cantidad) || 1, lineTotal: product.price * (parseInt(orderData.cantidad) || 1) }];
+  return normalizeTrustedOrder(orderData).items;
 }
 
 export async function sendOrderToBetsy(orderData) {
   const apiKey = process.env.BETSY_API_KEY;
   const apiUrl = process.env.BETSY_API_URL;
+  orderData = normalizeTrustedOrder(orderData);
 
   if (!apiKey || !apiUrl) {
     console.warn('⚠️ [Betsy] API credentials not configured, skipping CRM sync');
