@@ -1,7 +1,6 @@
-import { sendOrderEmail } from '../utils/email.js';
-import { sendOrderToBetsyWithRetry } from '../utils/betsy.js';
-import { sendMetaEvent, generateEventId } from '../utils/meta.js';
-import { decodeReturnData, findOrderTotalMismatch, normalizeTrustedOrder } from '../utils/order.js';
+import { sendPaymentProcessingAlert } from '../utils/email.js';
+import { processPaidOrder } from '../utils/fulfillment.js';
+import { decodeReturnData, findOrderTotalMismatch } from '../utils/order.js';
 import crypto from 'crypto';
 
 const processedWebhooks = new Set();
@@ -27,7 +26,7 @@ function verifyWebhookSignature(req) {
       const computedHash = crypto.createHmac('sha256', expectedSecret).update(rawBody).digest('hex');
       if (crypto.timingSafeEqual(Buffer.from(providedHash), Buffer.from(computedHash))) return true;
     } catch (e) {
-      console.error('⚠️ [Webhook] HMAC verification error:', e.message);
+      console.error('[Webhook] HMAC verification error:', e.message);
     }
     return false;
   }
@@ -50,14 +49,14 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') { return res.status(405).json({ error: 'Method not allowed' }); }
 
   const webhookId = `wh_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  console.log(`📨 [Webhook] Received payment notification [${webhookId}]`);
+  console.log(`[Webhook] Received payment notification [${webhookId}]`);
 
   try {
     const payload = req.body;
 
     const isVerified = verifyWebhookSignature(req);
     if (!isVerified) {
-      console.error(`❌ [Webhook] Signature verification FAILED [${webhookId}]`);
+      console.error(`[Webhook] Signature verification FAILED [${webhookId}]`);
       return res.status(401).json({ error: 'Invalid webhook signature' });
     }
 
@@ -66,7 +65,7 @@ export default async function handler(req, res) {
     const code = payload.code;
     const status = String(payload.estado || payload.status || '').toLowerCase();
 
-    console.log(`🔍 [Webhook] Payment details - Order: ${orderId}, Code: ${code}, Status: ${status} [${webhookId}]`);
+    console.log(`[Webhook] Payment details - Order: ${orderId}, Transaction: ${transactionId}, Code: ${code}, Status: ${status} [${webhookId}]`);
 
     if (!orderId) {
       return res.status(400).json({ error: 'No order ID' });
@@ -87,81 +86,79 @@ export default async function handler(req, res) {
 
       if (isDeclined) {
         processedWebhooks.add(dedupeKey);
-        return res.json({ success: true, orderId, message: 'Payment failed — order cancelled', paymentStatus: 'failed', webhookId });
+        return res.json({ success: true, orderId, message: 'Payment failed - order cancelled', paymentStatus: 'failed', webhookId });
       }
 
       return res.json({ success: true, orderId, message: 'Webhook received but status unknown', webhookId });
     }
 
-    let order = null;
     const returnData = payload.returnData || payload.return_data;
-    if (returnData) {
-      try {
-        order = decodeReturnData(returnData);
-        const { normalized, mismatches } = findOrderTotalMismatch(order);
-        if (mismatches.length > 0) {
-          console.warn(`[Webhook] Corrected untrusted order totals for ${orderId}: ${mismatches.join('; ')}`);
-        }
-        order = normalized;
-      } catch (e) {
-        console.warn(`⚠️ [Webhook] Could not decode returnData: ${e.message}`);
+    if (!returnData) {
+      await sendPaymentProcessingAlert({
+        reason: 'Approved Tilopay webhook missing returnData',
+        orderId,
+        transactionId,
+        source: 'webhook',
+        payload
+      }).catch(() => {});
+
+      processedWebhooks.add(dedupeKey);
+      return res.json({
+        success: true,
+        needsManualReview: true,
+        orderId,
+        message: 'Approved webhook received without order data. Admin alert sent.',
+        webhookId
+      });
+    }
+
+    let order;
+    try {
+      order = decodeReturnData(returnData);
+      const { mismatches } = findOrderTotalMismatch(order);
+      if (mismatches.length > 0) {
+        console.warn(`[Webhook] Correcting untrusted order totals for ${orderId}: ${mismatches.join('; ')}`);
       }
+    } catch (e) {
+      await sendPaymentProcessingAlert({
+        reason: 'Approved Tilopay webhook had invalid returnData',
+        orderId,
+        transactionId,
+        source: 'webhook',
+        payload: { error: e.message, body: payload }
+      }).catch(() => {});
+
+      processedWebhooks.add(dedupeKey);
+      return res.json({
+        success: true,
+        needsManualReview: true,
+        orderId,
+        message: 'Approved webhook had invalid order data. Admin alert sent.',
+        webhookId
+      });
     }
 
-    if (!order) {
-      console.error(`[Webhook] Approved payment ${orderId} did not include returnData; not sending order email`);
-      return res.status(422).json({ success: false, orderId, error: 'Approved payment missing returnData', webhookId });
+    const result = await processPaidOrder({
+      order: { ...order, orderId: order.orderId || orderId },
+      transactionId,
+      req,
+      source: 'webhook'
+    });
+
+    if (result.success) {
+      processedWebhooks.add(dedupeKey);
     }
 
-    order = normalizeTrustedOrder(order);
-    if (!order.nombre || !order.email || !order.telefono || !order.total || !Array.isArray(order.items) || order.items.length === 0) {
-      console.error(`[Webhook] Approved payment ${orderId} missing complete trusted order data; not sending order email`);
-      return res.status(422).json({ success: false, orderId, error: 'Incomplete trusted order data', webhookId });
-    }
-
-    order.paymentStatus = 'completed';
-    order.paymentId = transactionId;
-    order.paymentMethod = 'Tilopay';
-    order.paidAt = new Date().toISOString();
-
-    let betsyResult;
-    try {
-      betsyResult = await sendOrderToBetsyWithRetry({ ...order, paymentMethod: 'Tilopay', transactionId });
-    } catch (betsyError) {
-      console.error(`❌ [Webhook] Failed to sync to Betsy CRM:`, betsyError);
-      return res.status(502).json({ success: false, orderId, error: 'Betsy CRM sync failed', webhookId });
-    }
-
-    if (!betsyResult || !betsyResult.success) {
-      console.error(`[Webhook] Betsy CRM sync failed for ${orderId}: ${betsyResult?.error || 'unknown error'}`);
-      return res.status(502).json({ success: false, orderId, error: 'Betsy CRM sync failed', webhookId });
-    }
-
-    try {
-      await sendOrderEmail(order);
-    } catch (emailError) {
-      console.error(`❌ [Webhook] Failed to send email:`, emailError);
-      return res.status(502).json({ success: false, orderId, error: 'Order email failed', webhookId });
-    }
-
-    processedWebhooks.add(dedupeKey);
-
-    const appUrl = (process.env.APP_URL || 'https://patchhouse.shopping').replace(/\/+$/, '');
-    const metaEventId = generateEventId('purchase', orderId, transactionId);
-    const contentIds = (order.items || []).map(i => i.key).filter(Boolean);
-    const numItems = (order.items || []).reduce((sum, i) => sum + (parseInt(i.qty, 10) || 0), 0);
-    await sendMetaEvent('Purchase', metaEventId, order, req, {
-      value: order.total || 0,
-      currency: 'CRC',
-      content_ids: contentIds,
-      content_type: 'product',
-      num_items: numItems
-    }, `${appUrl}/success.html`).catch(() => {});
-
-    return res.json({ success: true, orderId, message: 'Payment confirmed and order processed via webhook', webhookId });
-
+    return res.json({
+      success: result.success,
+      alreadyProcessed: result.alreadyProcessed || false,
+      orderId,
+      message: result.success ? 'Payment confirmed and order processed via webhook' : 'Payment confirmed but order processing needs review',
+      results: result.results,
+      webhookId
+    });
   } catch (error) {
-    console.error(`❌ [Webhook] Error [${webhookId}]:`, error);
+    console.error(`[Webhook] Error [${webhookId}]:`, error);
     return res.status(500).json({ error: 'Webhook processing failed', message: error.message, webhookId });
   }
 }

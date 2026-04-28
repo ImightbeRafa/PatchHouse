@@ -3,6 +3,8 @@
  */
 
 import { sendMetaEvent, generateEventId } from '../utils/meta.js';
+import { sendPendingOrderEmail } from '../utils/email.js';
+import { sendOrderToBetsyWithRetry } from '../utils/betsy.js';
 import { PRODUCTS, SHIPPING_COST } from '../utils/order.js';
 
 // ── Sold-out configuration (keep in sync with src/js/main.js) ──
@@ -99,7 +101,7 @@ export default async function handler(req, res) {
     });
 
     const total = subtotal + SHIPPING_COST;
-    const orderId = Math.floor(100000 + Math.random() * 900000).toString();
+    const orderId = `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     console.log('🔑 [Tilopay] Authenticating...');
     const accessToken = await authenticateTilopay();
@@ -150,11 +152,24 @@ export default async function handler(req, res) {
       billToCountry: 'CR',
       billToTelephone: telefono,
       billToEmail: email,
+      shipToFirstName: firstName,
+      shipToLastName: lastName,
+      shipToAddress: direccion,
+      shipToAddress2: `${distrito}, ${canton}`,
+      shipToCity: canton,
+      shipToState: 'CR-' + ({
+        'San JosÃ©': 'SJ', 'Alajuela': 'A', 'Cartago': 'C',
+        'Heredia': 'H', 'Guanacaste': 'G', 'Puntarenas': 'P', 'LimÃ³n': 'L'
+      }[provincia] || 'SJ'),
+      shipToZipPostCode: '10101',
+      shipToCountry: 'CR',
+      shipToTelephone: telefono,
       orderNumber: orderId,
       capture: '1',
       subscription: '0',
       platform: 'PatchHouse',
-      returnData: encodedOrderData
+      returnData: encodedOrderData,
+      token_version: 'v2'
     };
 
     console.log('📤 [Tilopay] Sending payment request...');
@@ -181,6 +196,25 @@ export default async function handler(req, res) {
       console.error('❌ [Tilopay] No payment URL in response:', paymentData);
       throw new Error('No payment URL received from Tilopay');
     }
+
+    await Promise.allSettled([
+      sendPendingOrderEmail(orderData, { paymentUrl }),
+      sendOrderToBetsyWithRetry({
+        ...orderData,
+        paymentMethod: 'Tilopay',
+        paymentStatus: 'pending',
+        paymentId: paymentData.id || paymentData.transaction_id || 'PENDING'
+      }, 1)
+    ]).then(results => {
+      results.forEach((result, index) => {
+        const target = index === 0 ? 'pending email' : 'pending Betsy sync';
+        if (result.status === 'rejected') {
+          console.error(`⚠️ [Tilopay] Failed to create ${target} for order ${orderId}:`, result.reason?.message || result.reason);
+        } else if (result.value && result.value.success === false) {
+          console.error(`⚠️ [Tilopay] ${target} did not complete for order ${orderId}:`, result.value.error || result.value);
+        }
+      });
+    });
 
     const metaEventId = generateEventId('ic', orderId);
     const contentIds = itemDetails.map(i => i.key);

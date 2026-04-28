@@ -147,6 +147,7 @@
       var transactionId = urlParams.get('tilopay-transaction') || urlParams.get('tpt') || urlParams.get('transactionId');
       var code = urlParams.get('code');
       var returnData = urlParams.get('returnData');
+      var orderHash = urlParams.get('OrderHash') || urlParams.get('orderHash');
       var description = urlParams.get('description') || urlParams.get('mensaje');
 
       if (code === null || code === undefined || code === '') {
@@ -171,7 +172,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: orderId, transactionId: transactionId,
-          code: code, returnData: returnData
+          code: code, returnData: returnData, orderHash: orderHash
         })
       })
       .then(function(response) { return response.json(); })

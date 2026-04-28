@@ -223,6 +223,110 @@ async function sendAdminEmail(order) {
   return await response.json();
 }
 
+export async function sendPendingOrderEmail(order, context = {}) {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const notificationEmail = process.env.ORDER_NOTIFICATION_EMAIL;
+  order = normalizeTrustedOrder(order);
+  const items = getOrderItems(order);
+  const itemsSummary = items.map(i => `${esc(i.name)} x${i.qty} - ₡${(i.price * i.qty).toLocaleString('es-CR')}`).join('<br>');
+
+  if (!resendApiKey) {
+    throw new Error('RESEND_API_KEY not configured');
+  }
+
+  if (!notificationEmail) {
+    throw new Error('ORDER_NOTIFICATION_EMAIL not configured');
+  }
+
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <head><meta charset="UTF-8"></head>
+  <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <h2 style="color:#b45309;">Checkout iniciado - pendiente de pago Tilopay</h2>
+    <p>Este correo es una copia de seguridad operativa. No procese el pedido hasta confirmar que aparece aprobado en Tilopay.</p>
+    <h3>Orden ${esc(order.orderId)}</h3>
+    <p><strong>Cliente:</strong> ${esc(order.nombre)}<br>
+    <strong>Telefono:</strong> ${esc(order.telefono)}<br>
+    <strong>Email:</strong> ${esc(order.email)}</p>
+    <p><strong>Productos:</strong><br>${itemsSummary}</p>
+    <p><strong>Subtotal:</strong> ₡${order.subtotal.toLocaleString('es-CR')}<br>
+    <strong>Envio:</strong> ₡${order.shippingCost.toLocaleString('es-CR')}<br>
+    <strong>Total:</strong> ₡${order.total.toLocaleString('es-CR')}</p>
+    <p><strong>Direccion:</strong><br>
+    ${esc(order.direccion)}<br>
+    ${esc(order.distrito)}, ${esc(order.canton)}, ${esc(order.provincia)}</p>
+    ${context.paymentUrl ? `<p><strong>Tilopay URL creada:</strong> ${esc(context.paymentUrl)}</p>` : ''}
+    <p><strong>Fecha:</strong> ${new Date(order.createdAt || Date.now()).toLocaleString('es-CR')}</p>
+  </body>
+  </html>`;
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${resendApiKey}`
+    },
+    body: JSON.stringify({
+      from: 'PatchHouse <orders@patchhouse.shopping>',
+      to: notificationEmail,
+      subject: `[PENDIENTE TILOPAY] Orden ${order.orderId} - ${order.nombre}`,
+      html
+    })
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Failed to send pending order email: ${response.status} - ${errorBody}`);
+  }
+
+  return await response.json();
+}
+
+export async function sendPaymentProcessingAlert(details = {}) {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const notificationEmail = process.env.ORDER_NOTIFICATION_EMAIL;
+
+  if (!resendApiKey || !notificationEmail) {
+    return { success: false, error: 'Alert email not configured' };
+  }
+
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <head><meta charset="UTF-8"></head>
+  <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <h2 style="color:#dc2626;">Alerta de procesamiento de pago PatchHouse</h2>
+    <p><strong>Motivo:</strong> ${esc(details.reason || 'Payment processing issue')}</p>
+    <p><strong>Orden:</strong> ${esc(details.orderId || 'N/A')}<br>
+    <strong>Transaccion:</strong> ${esc(details.transactionId || 'N/A')}<br>
+    <strong>Origen:</strong> ${esc(details.source || 'N/A')}</p>
+    <pre style="white-space: pre-wrap; background:#f3f4f6; padding:12px; border-radius:8px;">${esc(JSON.stringify(details.payload || {}, null, 2))}</pre>
+  </body>
+  </html>`;
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${resendApiKey}`
+    },
+    body: JSON.stringify({
+      from: 'PatchHouse <orders@patchhouse.shopping>',
+      to: notificationEmail,
+      subject: `[ALERTA PAGO] ${details.orderId || 'Orden sin ID'} - ${details.reason || 'revision requerida'}`,
+      html
+    })
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    return { success: false, error: `HTTP ${response.status}: ${errorBody}` };
+  }
+
+  return { success: true, data: await response.json() };
+}
+
 export async function sendOrderEmail(order) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const notificationEmail = process.env.ORDER_NOTIFICATION_EMAIL;
