@@ -3,8 +3,6 @@
  */
 
 import { sendMetaEvent, generateEventId } from '../utils/meta.js';
-import { sendPendingOrderEmail } from '../utils/email.js';
-import { sendOrderToBetsyWithRetry } from '../utils/betsy.js';
 import { PRODUCTS, SHIPPING_COST } from '../utils/order.js';
 
 // ── Sold-out configuration (keep in sync with src/js/main.js) ──
@@ -39,6 +37,12 @@ function parseItems(body) {
     items = [{ key: body.producto, qty: parseInt(body.cantidad) || 1 }];
   }
   return items.filter(i => PRODUCTS[i.key] && i.qty > 0 && !isSoldOut(i.key));
+}
+
+function getClientOrderId(value) {
+  const id = String(value || '').trim();
+  if (!/^ORD-\d{10,}-\d{4}$/.test(id)) return null;
+  return id;
 }
 
 async function authenticateTilopay() {
@@ -81,7 +85,7 @@ export default async function handler(req, res) {
   console.log('🔵 [Tilopay] Creating payment link...');
 
   try {
-    const { nombre, telefono, email, provincia, canton, distrito, direccion, comentarios } = req.body;
+    const { nombre, telefono, email, provincia, canton, distrito, direccion, comentarios, clientOrderId } = req.body;
 
     if (!nombre || !telefono || !email || !provincia || !canton || !distrito || !direccion) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -101,7 +105,7 @@ export default async function handler(req, res) {
     });
 
     const total = subtotal + SHIPPING_COST;
-    const orderId = `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const orderId = getClientOrderId(clientOrderId) || `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     console.log('🔑 [Tilopay] Authenticating...');
     const accessToken = await authenticateTilopay();
@@ -196,25 +200,6 @@ export default async function handler(req, res) {
       console.error('❌ [Tilopay] No payment URL in response:', paymentData);
       throw new Error('No payment URL received from Tilopay');
     }
-
-    await Promise.allSettled([
-      sendPendingOrderEmail(orderData, { paymentUrl }),
-      sendOrderToBetsyWithRetry({
-        ...orderData,
-        paymentMethod: 'Tilopay',
-        paymentStatus: 'pending',
-        paymentId: paymentData.id || paymentData.transaction_id || 'PENDING'
-      }, 1)
-    ]).then(results => {
-      results.forEach((result, index) => {
-        const target = index === 0 ? 'pending email' : 'pending Betsy sync';
-        if (result.status === 'rejected') {
-          console.error(`⚠️ [Tilopay] Failed to create ${target} for order ${orderId}:`, result.reason?.message || result.reason);
-        } else if (result.value && result.value.success === false) {
-          console.error(`⚠️ [Tilopay] ${target} did not complete for order ${orderId}:`, result.value.error || result.value);
-        }
-      });
-    });
 
     const metaEventId = generateEventId('ic', orderId);
     const contentIds = itemDetails.map(i => i.key);

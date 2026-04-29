@@ -88,6 +88,34 @@ function getMetaContentIdsFromItems(items) {
   return items.map(it => it.key);
 }
 
+function getCheckoutFingerprint(data) {
+  return JSON.stringify({
+    email: String(data.email || '').trim().toLowerCase(),
+    telefono: String(data.telefono || '').replace(/\D/g, ''),
+    items: getCartEntries(),
+    total: getCartMetaTotal()
+  });
+}
+
+function getOrCreateClientOrderId(data) {
+  const storageKey = 'patchhouse_checkout_order';
+  const fingerprint = getCheckoutFingerprint(data);
+  try {
+    const current = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
+    if (current && current.fingerprint === fingerprint && /^ORD-\d{10,}-\d{4}$/.test(current.orderId || '')) {
+      return current.orderId;
+    }
+  } catch {
+  }
+
+  const orderId = `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  try {
+    sessionStorage.setItem(storageKey, JSON.stringify({ orderId, fingerprint }));
+  } catch {
+  }
+  return orderId;
+}
+
 function trackViewContent(productKey) {
   const p = PRODUCTS[productKey];
   if (!p) return;
@@ -350,6 +378,8 @@ if (orderForm) {
 }
 
 async function handleTilopayPayment(data) {
+  data.clientOrderId = getOrCreateClientOrderId(data);
+
   const response = await fetch(`${API_BASE_URL}/tilopay/create-payment`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

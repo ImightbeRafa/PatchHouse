@@ -110,6 +110,10 @@ export async function sendOrderToBetsy(orderData) {
 
     if (!response.ok) {
       const errorText = await response.text();
+      if (response.status === 409 && /already exists/i.test(errorText)) {
+        console.warn('⚠️ [Betsy] Order already exists, treating as already processed:', orderData.orderId);
+        return { success: true, alreadyExists: true, error: `HTTP ${response.status}: ${errorText}`, status: response.status };
+      }
       console.error('❌ [Betsy] CRM sync failed:', response.status, errorText);
       return { success: false, error: `HTTP ${response.status}: ${errorText}`, status: response.status };
     }

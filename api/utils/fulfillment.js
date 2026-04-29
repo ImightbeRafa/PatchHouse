@@ -75,6 +75,16 @@ export async function processPaidOrder({ order, transactionId, req, source = 'un
     results.betsy = { success: false, error: error.message };
   }
 
+  if (results.betsy.alreadyExists) {
+    processedPayments.add(key);
+    return {
+      success: true,
+      alreadyProcessed: true,
+      order: paidOrder,
+      results
+    };
+  }
+
   try {
     results.email = await sendOrderEmail(paidOrder);
   } catch (error) {
