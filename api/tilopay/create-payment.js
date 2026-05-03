@@ -15,6 +15,8 @@ const COMBO_CONTENTS = {
   'combo-mente': ['focus', 'nad'],
   'combo-metabolismo': ['glp1', 'nad'],
   'combo-mood': ['dopamine', 'stress'],
+  'combo-foco-calma': ['focus', 'stress'],
+  'combo-trio': ['focus', 'glp1', 'stress'],
   'combo-full': ['focus', 'nad', 'glp1', 'dopamine', 'stress']
 };
 

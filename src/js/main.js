@@ -11,6 +11,8 @@ const PRODUCTS = {
   'combo-mente': { name: 'Combo Mente & Energía', desc: 'Focus + NAD', price: 17900, savings: 1900 },
   'combo-metabolismo': { name: 'Combo Metabolismo & Energía', desc: 'GLP-1 + NAD', price: 17900, savings: 1900 },
   'combo-mood': { name: 'Combo Mood & Calma', desc: 'Dopamine + Stress', price: 17900, savings: 1900 },
+  'combo-foco-calma': { name: 'Combo Foco & Calma', desc: 'Focus + Stress', price: 17900, savings: 1900 },
+  'combo-trio': { name: 'Combo Trío Bienestar', desc: 'Focus + GLP-1 + Stress', price: 26900, savings: 2800 },
   'combo-full': { name: 'Combo Full House', desc: '5 paquetes', price: 42900, savings: 6600 }
 };
 
@@ -31,6 +33,8 @@ const COMBO_CONTENTS = {
   'combo-mente': ['focus', 'nad'],
   'combo-metabolismo': ['glp1', 'nad'],
   'combo-mood': ['dopamine', 'stress'],
+  'combo-foco-calma': ['focus', 'stress'],
+  'combo-trio': ['focus', 'glp1', 'stress'],
   'combo-full': ['focus', 'nad', 'glp1', 'dopamine', 'stress']
 };
 

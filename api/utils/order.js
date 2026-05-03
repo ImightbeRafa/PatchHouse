@@ -7,6 +7,8 @@ export const PRODUCTS = {
   'combo-mente': { name: 'Combo Mente & Energia (Focus + NAD)', price: 17900 },
   'combo-metabolismo': { name: 'Combo Metabolismo & Energia (GLP-1 + NAD)', price: 17900 },
   'combo-mood': { name: 'Combo Mood & Calma (Dopamine + Stress)', price: 17900 },
+  'combo-foco-calma': { name: 'Combo Foco & Calma (Focus + Stress)', price: 17900 },
+  'combo-trio': { name: 'Combo Trio Bienestar (Focus + GLP-1 + Stress)', price: 26900 },
   'combo-full': { name: 'Combo Full House (5 paquetes)', price: 42900 }
 };
 
