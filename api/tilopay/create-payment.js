@@ -12,12 +12,15 @@ const SOLD_OUT = (process.env.VITE_SOLD_OUT || process.env.SOLD_OUT || '')
   .filter(Boolean);
 
 const COMBO_CONTENTS = {
+  'combo-energia-foco': ['energy', 'focus'],
+  'combo-energia-celular': ['energy', 'nad'],
   'combo-mente': ['focus', 'nad'],
   'combo-metabolismo': ['glp1', 'nad'],
   'combo-mood': ['dopamine', 'stress'],
   'combo-foco-calma': ['focus', 'stress'],
+  'combo-performance': ['energy', 'focus', 'nad'],
   'combo-trio': ['focus', 'glp1', 'stress'],
-  'combo-full': ['focus', 'nad', 'glp1', 'dopamine', 'stress']
+  'combo-full': ['focus', 'nad', 'energy', 'glp1', 'dopamine', 'stress']
 };
 
 function isSoldOut(productKey) {
@@ -45,6 +48,26 @@ function getClientOrderId(value) {
   const id = String(value || '').trim();
   if (!/^ORD-\d{10,}-\d{4}$/.test(id)) return null;
   return id;
+}
+
+const REQUIRED_FIELDS = ['nombre', 'telefono', 'email', 'provincia', 'canton', 'distrito', 'direccion'];
+
+function getMissingRequiredFields(body) {
+  const missing = REQUIRED_FIELDS.filter(field => !String(body[field] || '').trim());
+  const nameParts = String(body.nombre || '').trim().split(/\s+/).filter(Boolean);
+  const phoneDigits = String(body.telefono || '').replace(/\D/g, '');
+
+  if (body.nombre && nameParts.length < 2 && !missing.includes('nombre')) {
+    missing.push('nombre');
+  }
+  if (body.telefono && phoneDigits.length < 8 && !missing.includes('telefono')) {
+    missing.push('telefono');
+  }
+  if (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.email).trim()) && !missing.includes('email')) {
+    missing.push('email');
+  }
+
+  return missing;
 }
 
 async function authenticateTilopay() {
@@ -87,13 +110,22 @@ export default async function handler(req, res) {
   console.log('🔵 [Tilopay] Creating payment link...');
 
   try {
-    const { nombre, telefono, email, provincia, canton, distrito, direccion, comentarios, clientOrderId } = req.body;
+    const requestBody = Object.fromEntries(Object.entries(req.body || {}).map(([key, value]) => [
+      key,
+      typeof value === 'string' ? value.trim() : value
+    ]));
+    const { nombre, telefono, email, provincia, canton, distrito, direccion, comentarios, clientOrderId } = requestBody;
 
-    if (!nombre || !telefono || !email || !provincia || !canton || !distrito || !direccion) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const missingFields = getMissingRequiredFields(requestBody);
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'Faltan datos requeridos para continuar.',
+        missingFields
+      });
     }
 
-    const items = parseItems(req.body);
+    const items = parseItems(requestBody);
     if (!items || items.length === 0) {
       return res.status(400).json({ error: 'No valid products in order' });
     }
@@ -138,6 +170,15 @@ export default async function handler(req, res) {
       comentarios, createdAt: new Date().toISOString()
     };
     const encodedOrderData = Buffer.from(JSON.stringify(orderData)).toString('base64');
+    const provinceStates = {
+      'San José': 'SJ',
+      'Alajuela': 'A',
+      'Cartago': 'C',
+      'Heredia': 'H',
+      'Guanacaste': 'G',
+      'Puntarenas': 'P',
+      'Limón': 'L'
+    };
 
     const paymentPayload = {
       key: apiKey,
@@ -150,10 +191,7 @@ export default async function handler(req, res) {
       billToAddress: direccion,
       billToAddress2: `${distrito}, ${canton}`,
       billToCity: canton,
-      billToState: 'CR-' + ({
-        'San José': 'SJ', 'Alajuela': 'A', 'Cartago': 'C',
-        'Heredia': 'H', 'Guanacaste': 'G', 'Puntarenas': 'P', 'Limón': 'L'
-      }[provincia] || 'SJ'),
+      billToState: 'CR-' + (provinceStates[provincia] || 'SJ'),
       billToZipPostCode: '10101',
       billToCountry: 'CR',
       billToTelephone: telefono,
@@ -163,10 +201,7 @@ export default async function handler(req, res) {
       shipToAddress: direccion,
       shipToAddress2: `${distrito}, ${canton}`,
       shipToCity: canton,
-      shipToState: 'CR-' + ({
-        'San JosÃ©': 'SJ', 'Alajuela': 'A', 'Cartago': 'C',
-        'Heredia': 'H', 'Guanacaste': 'G', 'Puntarenas': 'P', 'LimÃ³n': 'L'
-      }[provincia] || 'SJ'),
+      shipToState: 'CR-' + (provinceStates[provincia] || 'SJ'),
       shipToZipPostCode: '10101',
       shipToCountry: 'CR',
       shipToTelephone: telefono,

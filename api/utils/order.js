@@ -1,15 +1,19 @@
 export const PRODUCTS = {
   focus: { name: 'Focus Patch - 30 parches', price: 9900 },
   nad: { name: 'NAD Patch - 30 parches', price: 9900 },
+  energy: { name: 'Energy Patch - 30 parches', price: 9900 },
   glp1: { name: 'GLP-1 Patch - 30 parches', price: 9900 },
   dopamine: { name: 'Dopamine Patch - 30 parches', price: 9900 },
   stress: { name: 'Stress Relief Patch - 30 parches', price: 9900 },
+  'combo-energia-foco': { name: 'Combo Energia & Foco (Energy + Focus)', price: 17900 },
+  'combo-energia-celular': { name: 'Combo Energia Celular (Energy + NAD)', price: 17900 },
   'combo-mente': { name: 'Combo Mente & Energia (Focus + NAD)', price: 17900 },
   'combo-metabolismo': { name: 'Combo Metabolismo & Energia (GLP-1 + NAD)', price: 17900 },
   'combo-mood': { name: 'Combo Mood & Calma (Dopamine + Stress)', price: 17900 },
   'combo-foco-calma': { name: 'Combo Foco & Calma (Focus + Stress)', price: 17900 },
+  'combo-performance': { name: 'Combo Trio Performance (Energy + Focus + NAD)', price: 26900 },
   'combo-trio': { name: 'Combo Trio Bienestar (Focus + GLP-1 + Stress)', price: 26900 },
-  'combo-full': { name: 'Combo Full House (5 paquetes)', price: 42900 }
+  'combo-full': { name: 'Combo Full House (6 paquetes)', price: 49900 }
 };
 
 export const SHIPPING_COST = 3000;

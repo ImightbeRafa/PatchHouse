@@ -5,15 +5,19 @@ const API_BASE_URL = '/api';
 const PRODUCTS = {
   'focus': { name: 'Focus Patch', desc: '30 parches', price: 9900 },
   'nad': { name: 'NAD+ Patch', desc: '30 parches', price: 9900 },
+  'energy': { name: 'Energy Patch', desc: '30 parches', price: 9900 },
   'glp1': { name: 'GLP-1 Patch', desc: '30 parches', price: 9900 },
   'dopamine': { name: 'Dopamine Patch', desc: '30 parches', price: 9900 },
   'stress': { name: 'Stress Relief Patch', desc: '30 parches', price: 9900 },
+  'combo-energia-foco': { name: 'Combo Energía & Foco', desc: 'Energy + Focus', price: 17900, savings: 1900 },
+  'combo-energia-celular': { name: 'Combo Energía Celular', desc: 'Energy + NAD', price: 17900, savings: 1900 },
   'combo-mente': { name: 'Combo Mente & Energía', desc: 'Focus + NAD', price: 17900, savings: 1900 },
   'combo-metabolismo': { name: 'Combo Metabolismo & Energía', desc: 'GLP-1 + NAD', price: 17900, savings: 1900 },
   'combo-mood': { name: 'Combo Mood & Calma', desc: 'Dopamine + Stress', price: 17900, savings: 1900 },
   'combo-foco-calma': { name: 'Combo Foco & Calma', desc: 'Focus + Stress', price: 17900, savings: 1900 },
+  'combo-performance': { name: 'Combo Trío Performance', desc: 'Energy + Focus + NAD', price: 26900, savings: 2800 },
   'combo-trio': { name: 'Combo Trío Bienestar', desc: 'Focus + GLP-1 + Stress', price: 26900, savings: 2800 },
-  'combo-full': { name: 'Combo Full House', desc: '5 paquetes', price: 42900, savings: 6600 }
+  'combo-full': { name: 'Combo Full House', desc: '6 paquetes', price: 49900, savings: 9500 }
 };
 
 const SHIPPING_COST = 3000;
@@ -30,12 +34,15 @@ const SOLD_OUT = (import.meta.env.VITE_SOLD_OUT || '')
 const SOLD_OUT_MESSAGE = import.meta.env.VITE_SOLD_OUT_MESSAGE || '¡Vuelve pronto! Llega en 10 días';
 
 const COMBO_CONTENTS = {
+  'combo-energia-foco': ['energy', 'focus'],
+  'combo-energia-celular': ['energy', 'nad'],
   'combo-mente': ['focus', 'nad'],
   'combo-metabolismo': ['glp1', 'nad'],
   'combo-mood': ['dopamine', 'stress'],
   'combo-foco-calma': ['focus', 'stress'],
+  'combo-performance': ['energy', 'focus', 'nad'],
   'combo-trio': ['focus', 'glp1', 'stress'],
-  'combo-full': ['focus', 'nad', 'glp1', 'dopamine', 'stress']
+  'combo-full': ['focus', 'nad', 'energy', 'glp1', 'dopamine', 'stress']
 };
 
 function isSoldOut(productKey) {
@@ -350,10 +357,101 @@ document.querySelectorAll('.faq-question').forEach(question => {
 
 // --- Form Submission ---
 const orderForm = document.getElementById('order-form');
+const checkoutValidationSummary = document.getElementById('checkout-validation-summary');
+const checkoutValidationList = document.getElementById('checkout-validation-list');
+const checkoutRequiredFields = [
+  { name: 'nombre', label: 'nombre y apellido' },
+  { name: 'telefono', label: 'número de teléfono' },
+  { name: 'email', label: 'correo electrónico' },
+  { name: 'provincia', label: 'provincia' },
+  { name: 'canton', label: 'cantón' },
+  { name: 'distrito', label: 'distrito' },
+  { name: 'direccion', label: 'dirección completa' }
+];
+
+function getTrimmedFormData(form) {
+  const formData = new FormData(form);
+  return Object.fromEntries(Array.from(formData.entries()).map(([key, value]) => [
+    key,
+    typeof value === 'string' ? value.trim() : value
+  ]));
+}
+
+function clearCheckoutValidation() {
+  if (checkoutValidationSummary) {
+    checkoutValidationSummary.hidden = true;
+  }
+  if (checkoutValidationList) {
+    checkoutValidationList.innerHTML = '';
+  }
+  if (!orderForm) return;
+  orderForm.querySelectorAll('.field-invalid').forEach(group => group.classList.remove('field-invalid'));
+  orderForm.querySelectorAll('[aria-invalid="true"]').forEach(field => field.removeAttribute('aria-invalid'));
+}
+
+function validateCheckoutData(data) {
+  const missing = checkoutRequiredFields
+    .filter(field => !String(data[field.name] || '').trim())
+    .map(field => field.name);
+
+  const nombreParts = String(data.nombre || '').trim().split(/\s+/).filter(Boolean);
+  if (data.nombre && nombreParts.length < 2 && !missing.includes('nombre')) {
+    missing.push('nombre');
+  }
+
+  const phoneDigits = String(data.telefono || '').replace(/\D/g, '');
+  if (data.telefono && phoneDigits.length < 8 && !missing.includes('telefono')) {
+    missing.push('telefono');
+  }
+
+  const emailField = orderForm ? orderForm.elements.email : null;
+  if (data.email && emailField && !emailField.validity.valid && !missing.includes('email')) {
+    missing.push('email');
+  }
+
+  return missing;
+}
+
+function getMissingFieldLabel(fieldName) {
+  const field = checkoutRequiredFields.find(item => item.name === fieldName);
+  return field ? field.label : fieldName;
+}
+
+function showCheckoutValidation(missingFields) {
+  clearCheckoutValidation();
+  const uniqueMissingFields = Array.from(new Set(missingFields));
+
+  if (checkoutValidationSummary && checkoutValidationList) {
+    checkoutValidationList.innerHTML = uniqueMissingFields
+      .map(fieldName => `<li>${getMissingFieldLabel(fieldName)}</li>`)
+      .join('');
+    checkoutValidationSummary.hidden = false;
+    checkoutValidationSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else {
+    showMessage(`Faltan datos: ${uniqueMissingFields.map(getMissingFieldLabel).join(', ')}`, 'error');
+  }
+
+  uniqueMissingFields.forEach(fieldName => {
+    const field = orderForm ? orderForm.elements[fieldName] : null;
+    if (!field) return;
+    field.setAttribute('aria-invalid', 'true');
+    const group = field.closest('.form-group');
+    if (group) group.classList.add('field-invalid');
+  });
+
+  const firstField = orderForm ? orderForm.elements[uniqueMissingFields[0]] : null;
+  if (firstField && typeof firstField.focus === 'function') {
+    setTimeout(() => firstField.focus({ preventScroll: true }), 250);
+  }
+}
 
 if (orderForm) {
+  orderForm.addEventListener('input', clearCheckoutValidation);
+  orderForm.addEventListener('change', clearCheckoutValidation);
+
   orderForm.addEventListener('submit', async function (e) {
     e.preventDefault();
+    clearCheckoutValidation();
 
     const entries = getCartEntries();
     if (entries.length === 0) {
@@ -361,11 +459,11 @@ if (orderForm) {
       return;
     }
 
-    const formData = new FormData(orderForm);
-    const data = Object.fromEntries(formData);
+    const data = getTrimmedFormData(orderForm);
+    const missingFields = validateCheckoutData(data);
 
-    if (!data.nombre || !data.telefono || !data.email || !data.provincia || !data.canton || !data.distrito || !data.direccion) {
-      showMessage('Por favor, completá todos los campos requeridos', 'error');
+    if (missingFields.length > 0) {
+      showCheckoutValidation(missingFields);
       return;
     }
 
@@ -375,6 +473,11 @@ if (orderForm) {
       await handleTilopayPayment(data);
     } catch (error) {
       console.error('Payment error:', error);
+      if (Array.isArray(error.missingFields) && error.missingFields.length > 0) {
+        showCheckoutValidation(error.missingFields);
+        showLoading(false);
+        return;
+      }
       showMessage('Error al procesar el pedido. Por favor, intentá de nuevo.', 'error');
       showLoading(false);
     }
@@ -392,13 +495,16 @@ async function handleTilopayPayment(data) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(errorData.message || 'Failed to create payment link');
+    const error = new Error(errorData.message || 'Failed to create payment link');
+    error.missingFields = errorData.missingFields || [];
+    throw error;
   }
 
   const result = await response.json();
   showLoading(false);
 
-  if (result.paymentUrl) {
+  const paymentUrl = String(result.paymentUrl || '').trim();
+  if (/^https?:\/\//i.test(paymentUrl)) {
     if (result.metaEventId) {
       metaTrack('InitiateCheckout', {
         content_ids: getMetaContentIdsFromItems(getCartItemsForMeta()),
@@ -408,9 +514,31 @@ async function handleTilopayPayment(data) {
         currency: 'CRC'
       }, { eventID: result.metaEventId });
     }
-    window.location.href = result.paymentUrl;
+    showRedirectFallback(paymentUrl);
+    window.location.assign(paymentUrl);
   } else {
     throw new Error('No payment URL received');
+  }
+}
+
+function showRedirectFallback(paymentUrl) {
+  const existing = document.querySelector('.message');
+  if (existing) existing.remove();
+
+  const msg = document.createElement('div');
+  msg.className = 'message success';
+
+  const text = document.createElement('span');
+  text.textContent = 'Te estamos enviando a Tilopay. Si no abre automáticamente, ';
+
+  const link = document.createElement('a');
+  link.href = paymentUrl;
+  link.textContent = 'abrilo aquí';
+
+  msg.append(text, link, document.createTextNode('.'));
+
+  if (orderForm) {
+    orderForm.parentNode.insertBefore(msg, orderForm);
   }
 }
 
@@ -432,4 +560,9 @@ function showMessage(text, type = 'success') {
 function showLoading(show) {
   const overlay = document.getElementById('loading-overlay');
   if (overlay) overlay.style.display = show ? 'flex' : 'none';
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = show || getCartEntries().length === 0;
+    submitBtn.textContent = show ? 'Conectando con Tilopay...' : (getCartEntries().length === 0 ? 'Agregá productos para continuar' : 'Confirmar Pedido');
+  }
 }
