@@ -1,22 +1,90 @@
-export const PRODUCTS = {
-  focus: { name: 'Focus Patch - 30 parches', price: 9900 },
-  nad: { name: 'NAD Patch - 30 parches', price: 9900 },
-  energy: { name: 'Energy Patch - 30 parches', price: 9900 },
-  glp1: { name: 'GLP-1 Patch - 30 parches', price: 9900 },
-  dopamine: { name: 'Dopamine Patch - 30 parches', price: 9900 },
-  stress: { name: 'Stress Relief Patch - 30 parches', price: 9900 },
-  'combo-energia-foco': { name: 'Combo Energia & Foco (Energy + Focus)', price: 17900 },
-  'combo-energia-celular': { name: 'Combo Energia Celular (Energy + NAD)', price: 17900 },
-  'combo-mente': { name: 'Combo Mente & Energia (Focus + NAD)', price: 17900 },
-  'combo-metabolismo': { name: 'Combo Metabolismo & Energia (GLP-1 + NAD)', price: 17900 },
-  'combo-mood': { name: 'Combo Mood & Calma (Dopamine + Stress)', price: 17900 },
-  'combo-foco-calma': { name: 'Combo Foco & Calma (Focus + Stress)', price: 17900 },
-  'combo-performance': { name: 'Combo Trio Performance (Energy + Focus + NAD)', price: 26900 },
-  'combo-trio': { name: 'Combo Trio Bienestar (Focus + GLP-1 + Stress)', price: 26900 },
-  'combo-full': { name: 'Combo Full House (6 paquetes)', price: 49900 }
+export const SHIPPING_COST = 3000;
+
+const SINGLE_PATCH_PRICE = 9900;
+const SINGLE_PATCH_KEYS = ['focus', 'nad', 'energy', 'glp1', 'dopamine', 'stress'];
+const SINGLE_PATCH_PRODUCTS = {
+  focus: { name: 'Focus Patch - 30 parches', price: SINGLE_PATCH_PRICE },
+  nad: { name: 'NAD Patch - 30 parches', price: SINGLE_PATCH_PRICE },
+  energy: { name: 'Energy Patch - 30 parches', price: SINGLE_PATCH_PRICE },
+  glp1: { name: 'GLP-1 Patch - 30 parches', price: SINGLE_PATCH_PRICE },
+  dopamine: { name: 'Dopamine Patch - 30 parches', price: SINGLE_PATCH_PRICE },
+  stress: { name: 'Stress Relief Patch - 30 parches', price: SINGLE_PATCH_PRICE }
 };
 
-export const SHIPPING_COST = 3000;
+const STATIC_COMBO_PRODUCTS = {
+  'combo-energia-foco': { name: 'Combo Energia & Foco (Energy + Focus)', price: 17900 },
+  'combo-metabolismo': { name: 'Combo Metabolismo & Energia (GLP-1 + Energy)', price: 17900 },
+  'combo-mood': { name: 'Combo Mood & Calma (Dopamine + Stress)', price: 17900 },
+  'combo-foco-calma': { name: 'Combo Foco & Calma (Focus + Stress)', price: 17900 },
+  'combo-trio': { name: 'Combo Trio Bienestar (Focus + GLP-1 + Stress)', price: 26900 }
+};
+
+const STATIC_COMBO_CONTENTS = {
+  'combo-energia-foco': ['energy', 'focus'],
+  'combo-metabolismo': ['glp1', 'energy'],
+  'combo-mood': ['dopamine', 'stress'],
+  'combo-foco-calma': ['focus', 'stress'],
+  'combo-trio': ['focus', 'glp1', 'stress']
+};
+
+const FULL_HOUSE_PRICE_BY_COUNT = {
+  2: 17900,
+  3: 26900,
+  4: 35900,
+  5: 44900,
+  6: 49900
+};
+
+function parseEnvList(value) {
+  return String(value || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+const SOLD_OUT = parseEnvList(process.env.VITE_SOLD_OUT || process.env.SOLD_OUT || '');
+const COMBO_EXCLUDED = parseEnvList(process.env.VITE_COMBO_EXCLUDED || process.env.COMBO_EXCLUDED || 'nad');
+
+function getEnvPriceForCount(count) {
+  const value = process.env[`FULL_HOUSE_PRICE_${count}`] || process.env[`VITE_FULL_HOUSE_PRICE_${count}`];
+  const price = Number.parseInt(value, 10);
+  return Number.isFinite(price) && price > 0 ? price : null;
+}
+
+export function getAvailableFullHousePatchKeys() {
+  return SINGLE_PATCH_KEYS.filter(key => !SOLD_OUT.includes(key) && !COMBO_EXCLUDED.includes(key));
+}
+
+function getFullHouseProduct() {
+  const patchCount = getAvailableFullHousePatchKeys().length;
+  if (patchCount < 2) return null;
+
+  const price = getEnvPriceForCount(patchCount) || FULL_HOUSE_PRICE_BY_COUNT[patchCount] || (patchCount * SINGLE_PATCH_PRICE);
+  return {
+    name: `Combo Full House (${patchCount} paquetes)`,
+    price
+  };
+}
+
+const fullHouseProduct = getFullHouseProduct();
+
+export const COMBO_CONTENTS = {
+  ...STATIC_COMBO_CONTENTS,
+  ...(fullHouseProduct ? { 'combo-full': getAvailableFullHousePatchKeys() } : {})
+};
+
+export const PRODUCTS = {
+  ...SINGLE_PATCH_PRODUCTS,
+  ...STATIC_COMBO_PRODUCTS,
+  ...(fullHouseProduct ? { 'combo-full': fullHouseProduct } : {})
+};
+
+export function isSoldOut(productKey) {
+  if (SOLD_OUT.includes(productKey)) return true;
+  const contents = COMBO_CONTENTS[productKey];
+  if (contents && contents.some(key => SOLD_OUT.includes(key))) return true;
+  return false;
+}
 
 function toQty(value) {
   const qty = Number.parseInt(value, 10);

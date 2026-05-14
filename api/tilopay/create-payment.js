@@ -3,32 +3,7 @@
  */
 
 import { sendMetaEvent, generateEventId } from '../utils/meta.js';
-import { PRODUCTS, SHIPPING_COST } from '../utils/order.js';
-
-// ── Sold-out configuration (keep in sync with src/js/main.js) ──
-const SOLD_OUT = (process.env.VITE_SOLD_OUT || process.env.SOLD_OUT || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
-const COMBO_CONTENTS = {
-  'combo-energia-foco': ['energy', 'focus'],
-  'combo-energia-celular': ['energy', 'nad'],
-  'combo-mente': ['focus', 'nad'],
-  'combo-metabolismo': ['glp1', 'nad'],
-  'combo-mood': ['dopamine', 'stress'],
-  'combo-foco-calma': ['focus', 'stress'],
-  'combo-performance': ['energy', 'focus', 'nad'],
-  'combo-trio': ['focus', 'glp1', 'stress'],
-  'combo-full': ['focus', 'nad', 'energy', 'glp1', 'dopamine', 'stress']
-};
-
-function isSoldOut(productKey) {
-  if (SOLD_OUT.includes(productKey)) return true;
-  const contents = COMBO_CONTENTS[productKey];
-  if (contents && contents.some(k => SOLD_OUT.includes(k))) return true;
-  return false;
-}
+import { PRODUCTS, SHIPPING_COST, isSoldOut } from '../utils/order.js';
 
 function parseItems(body) {
   let items = [];

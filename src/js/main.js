@@ -2,22 +2,23 @@ import '../styles/main.css';
 
 const API_BASE_URL = '/api';
 
-const PRODUCTS = {
-  'focus': { name: 'Focus Patch', desc: '30 parches', price: 9900 },
-  'nad': { name: 'NAD+ Patch', desc: '30 parches', price: 9900 },
-  'energy': { name: 'Energy Patch', desc: '30 parches', price: 9900 },
-  'glp1': { name: 'GLP-1 Patch', desc: '30 parches', price: 9900 },
-  'dopamine': { name: 'Dopamine Patch', desc: '30 parches', price: 9900 },
-  'stress': { name: 'Stress Relief Patch', desc: '30 parches', price: 9900 },
+const SINGLE_PATCH_PRICE = 9900;
+const SINGLE_PATCH_ORDER = ['focus', 'nad', 'energy', 'glp1', 'dopamine', 'stress'];
+const SINGLE_PATCH_PRODUCTS = {
+  'focus': { name: 'Focus Patch', desc: '30 parches', price: SINGLE_PATCH_PRICE },
+  'nad': { name: 'NAD+ Patch', desc: '30 parches', price: SINGLE_PATCH_PRICE },
+  'energy': { name: 'Energy Patch', desc: '30 parches', price: SINGLE_PATCH_PRICE },
+  'glp1': { name: 'GLP-1 Patch', desc: '30 parches', price: SINGLE_PATCH_PRICE },
+  'dopamine': { name: 'Dopamine Patch', desc: '30 parches', price: SINGLE_PATCH_PRICE },
+  'stress': { name: 'Stress Relief Patch', desc: '30 parches', price: SINGLE_PATCH_PRICE }
+};
+
+const STATIC_COMBO_PRODUCTS = {
   'combo-energia-foco': { name: 'Combo Energía & Foco', desc: 'Energy + Focus', price: 17900, savings: 1900 },
-  'combo-energia-celular': { name: 'Combo Energía Celular', desc: 'Energy + NAD', price: 17900, savings: 1900 },
-  'combo-mente': { name: 'Combo Mente & Energía', desc: 'Focus + NAD', price: 17900, savings: 1900 },
-  'combo-metabolismo': { name: 'Combo Metabolismo & Energía', desc: 'GLP-1 + NAD', price: 17900, savings: 1900 },
+  'combo-metabolismo': { name: 'Combo Metabolismo & Energía', desc: 'GLP-1 + Energy', price: 17900, savings: 1900 },
   'combo-mood': { name: 'Combo Mood & Calma', desc: 'Dopamine + Stress', price: 17900, savings: 1900 },
   'combo-foco-calma': { name: 'Combo Foco & Calma', desc: 'Focus + Stress', price: 17900, savings: 1900 },
-  'combo-performance': { name: 'Combo Trío Performance', desc: 'Energy + Focus + NAD', price: 26900, savings: 2800 },
-  'combo-trio': { name: 'Combo Trío Bienestar', desc: 'Focus + GLP-1 + Stress', price: 26900, savings: 2800 },
-  'combo-full': { name: 'Combo Full House', desc: '6 paquetes', price: 49900, savings: 9500 }
+  'combo-trio': { name: 'Combo Trío Bienestar', desc: 'Focus + GLP-1 + Stress', price: 26900, savings: 2800 }
 };
 
 const SHIPPING_COST = 3000;
@@ -25,24 +26,76 @@ const SHIPPING_COST = 3000;
 // ── Sold-out configuration ──────────────────────────────────────────
 // Driven by env vars so you can toggle without code changes.
 // VITE_SOLD_OUT        → comma-separated product keys (e.g. "stress,dopamine")
+// VITE_COMBO_EXCLUDED  → comma-separated keys to sell only as individual products
 // VITE_SOLD_OUT_MESSAGE → banner text shown on sold-out products
 // Set them in .env (local) or Vercel dashboard (production).
 const SOLD_OUT = (import.meta.env.VITE_SOLD_OUT || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
+const COMBO_EXCLUDED = (import.meta.env.VITE_COMBO_EXCLUDED || 'nad')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
 const SOLD_OUT_MESSAGE = import.meta.env.VITE_SOLD_OUT_MESSAGE || '¡Vuelve pronto! Llega en 10 días';
 
-const COMBO_CONTENTS = {
+const STATIC_COMBO_CONTENTS = {
   'combo-energia-foco': ['energy', 'focus'],
-  'combo-energia-celular': ['energy', 'nad'],
-  'combo-mente': ['focus', 'nad'],
-  'combo-metabolismo': ['glp1', 'nad'],
+  'combo-metabolismo': ['glp1', 'energy'],
   'combo-mood': ['dopamine', 'stress'],
   'combo-foco-calma': ['focus', 'stress'],
-  'combo-performance': ['energy', 'focus', 'nad'],
-  'combo-trio': ['focus', 'glp1', 'stress'],
-  'combo-full': ['focus', 'nad', 'energy', 'glp1', 'dopamine', 'stress']
+  'combo-trio': ['focus', 'glp1', 'stress']
+};
+
+const FULL_HOUSE_PRICE_BY_COUNT = {
+  2: 17900,
+  3: 26900,
+  4: 35900,
+  5: 44900,
+  6: 49900
+};
+
+const PATCH_ASSETS = {
+  focus: { label: 'Focus', image: '/images/focus.jpg' },
+  nad: { label: 'NAD', image: '/images/nad.jpg' },
+  energy: { label: 'Energy', image: '/images/energy.jpg' },
+  glp1: { label: 'GLP-1', image: '/images/glp1.jpg' },
+  dopamine: { label: 'Dopamine', image: '/images/dopamine.jpg' },
+  stress: { label: 'Stress', image: '/images/stressdown.jpg' }
+};
+
+function getAvailableFullHousePatchKeys() {
+  return SINGLE_PATCH_ORDER.filter(key => !SOLD_OUT.includes(key) && !COMBO_EXCLUDED.includes(key));
+}
+
+function getFullHousePrice(count) {
+  const override = Number.parseInt(import.meta.env[`VITE_FULL_HOUSE_PRICE_${count}`], 10);
+  return Number.isFinite(override) && override > 0 ? override : FULL_HOUSE_PRICE_BY_COUNT[count];
+}
+
+function getFullHouseProduct() {
+  const patchCount = getAvailableFullHousePatchKeys().length;
+  if (patchCount < 2) return null;
+
+  const oldPrice = patchCount * SINGLE_PATCH_PRICE;
+  const price = getFullHousePrice(patchCount) || oldPrice;
+  return {
+    name: 'Combo Full House',
+    desc: `${patchCount} paquetes`,
+    price,
+    savings: Math.max(oldPrice - price, 0)
+  };
+}
+
+const fullHouseProduct = getFullHouseProduct();
+const COMBO_CONTENTS = {
+  ...STATIC_COMBO_CONTENTS,
+  ...(fullHouseProduct ? { 'combo-full': getAvailableFullHousePatchKeys() } : {})
+};
+const PRODUCTS = {
+  ...SINGLE_PATCH_PRODUCTS,
+  ...STATIC_COMBO_PRODUCTS,
+  ...(fullHouseProduct ? { 'combo-full': fullHouseProduct } : {})
 };
 
 function isSoldOut(productKey) {
@@ -153,6 +206,73 @@ function trackAddToCart(productKey, quantity) {
 
 function formatCRC(amount) {
   return `₡${amount.toLocaleString('es-CR')}`;
+}
+
+function getProductContainer(productKey) {
+  const ctrl = document.querySelector(`.qty-control[data-product="${productKey}"]`);
+  return ctrl ? ctrl.closest('.combo-card, .picker-row, .patch-detail') : null;
+}
+
+function hideUnavailableCatalogControls() {
+  document.querySelectorAll('.qty-control').forEach(ctrl => {
+    const key = ctrl.dataset.product;
+    if (!key || PRODUCTS[key]) return;
+
+    const container = ctrl.closest('.combo-card, .picker-row');
+    if (container) container.hidden = true;
+  });
+}
+
+function updateFullHouseDisplay() {
+  const product = PRODUCTS['combo-full'];
+  const patchKeys = COMBO_CONTENTS['combo-full'] || [];
+  const fullHouseCard = getProductContainer('combo-full');
+
+  if (!product || patchKeys.length < 2) {
+    if (fullHouseCard) fullHouseCard.hidden = true;
+    document.querySelectorAll('.picker-row .qty-control[data-product="combo-full"]').forEach(ctrl => {
+      const row = ctrl.closest('.picker-row');
+      if (row) row.hidden = true;
+    });
+    return;
+  }
+
+  const oldPrice = patchKeys.length * SINGLE_PATCH_PRICE;
+  const names = patchKeys.map(key => PATCH_ASSETS[key].label);
+  const description = names.join(' + ');
+
+  document.querySelectorAll('.combo-card .qty-control[data-product="combo-full"]').forEach(ctrl => {
+    const card = ctrl.closest('.combo-card');
+    if (!card) return;
+
+    const badge = card.querySelector('.combo-badge');
+    if (badge) badge.textContent = product.savings > 0 ? `Ahorrás ${formatCRC(product.savings)}` : 'Todos los disponibles';
+
+    const countLabel = card.querySelector('h3 span');
+    if (countLabel) countLabel.textContent = product.desc;
+
+    const productsEl = card.querySelector('.combo-products-full');
+    if (productsEl) {
+      productsEl.innerHTML = patchKeys
+        .map(key => `<img src="${PATCH_ASSETS[key].image}" alt="${PATCH_ASSETS[key].label}" loading="lazy">`)
+        .join('');
+    }
+
+    const text = card.querySelector('p');
+    if (text) text.textContent = description;
+
+    const oldPriceEl = card.querySelector('.combo-old-price');
+    if (oldPriceEl) oldPriceEl.textContent = formatCRC(oldPrice);
+
+    const priceEl = card.querySelector('.combo-price');
+    if (priceEl) priceEl.textContent = formatCRC(product.price);
+  });
+
+  document.querySelectorAll('.picker-row .qty-control[data-product="combo-full"]').forEach(ctrl => {
+    const row = ctrl.closest('.picker-row');
+    const name = row ? row.querySelector('.picker-name') : null;
+    if (name) name.innerHTML = `Full House (${patchKeys.length}) <span class="picker-price">${formatCRC(product.price)}</span>`;
+  });
 }
 
 // --- Navigation ---
@@ -270,6 +390,8 @@ function bindQtyButtons(scope) {
   });
 }
 
+hideUnavailableCatalogControls();
+updateFullHouseDisplay();
 bindQtyButtons(document);
 syncAllQtyDisplays();
 updateTotals();
