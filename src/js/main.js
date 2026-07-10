@@ -1,5 +1,3 @@
-import '../styles/main.css';
-
 const API_BASE_URL = '/api';
 
 const SINGLE_PATCH_PRICE = 9900;
@@ -402,12 +400,24 @@ function bindQtyButtons(scope) {
 }
 
 hideUnavailableCatalogControls();
-updateFullHouseDisplay();
 bindQtyButtons(document);
 syncAllQtyDisplays();
 updateTotals();
 
-// --- Sold Out State ---
+function initDeferredWork() {
+  updateFullHouseDisplay();
+  applySoldOutState();
+  if (typeof IntersectionObserver !== 'undefined') {
+    setupMetaViewContentObservers();
+    setupLazyVideos();
+  }
+}
+
+if ('requestIdleCallback' in window) {
+  requestIdleCallback(initDeferredWork, { timeout: 1500 });
+} else {
+  setTimeout(initDeferredWork, 1);
+}
 function applySoldOutState() {
   Object.keys(PRODUCTS).forEach(key => {
     if (!isSoldOut(key)) return;
@@ -445,8 +455,6 @@ function applySoldOutState() {
   });
 }
 
-applySoldOutState();
-
 // --- Meta: basic product impressions ---
 function setupMetaViewContentObservers() {
   const productKeys = Object.keys(PRODUCTS);
@@ -472,10 +480,6 @@ function setupMetaViewContentObservers() {
     container.setAttribute('data-meta-product', key);
     observer.observe(container);
   });
-}
-
-if (typeof window !== 'undefined' && typeof IntersectionObserver !== 'undefined') {
-  setupMetaViewContentObservers();
 }
 
 function setupLazyVideos() {
@@ -511,8 +515,6 @@ function setupLazyVideos() {
 
   videos.forEach((video) => observer.observe(video));
 }
-
-setupLazyVideos();
 
 // --- FAQ Accordion ---
 document.querySelectorAll('.faq-question').forEach(question => {
