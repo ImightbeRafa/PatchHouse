@@ -5,17 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verificando Pago – PatchHouse</title>
   <link rel="icon" type="image/png" href="/images/logo.png">
+  <link rel="dns-prefetch" href="https://connect.facebook.net">
+  <link rel="preconnect" href="https://connect.facebook.net" crossorigin>
   <script>
   !function(f,b,e,v,n,t,s)
   {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
   n.callMethod.apply(n,arguments):n.queue.push(arguments)};
   if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-  n.queue=[];t=b.createElement(e);t.async=!0;
-  t.src=v;s=b.getElementsByTagName(e)[0];
-  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  n.queue=[]}(window,document,'script',
   'https://connect.facebook.net/en_US/fbevents.js');
   fbq('init', '2330584627352047');
   fbq('track', 'PageView');
+  function loadFbqScript(){
+    if(window._fbqLoaded)return;window._fbqLoaded=true;
+    var t=document.createElement('script');t.async=true;
+    t.src='https://connect.facebook.net/en_US/fbevents.js';
+    document.head.appendChild(t);
+  }
+  if('requestIdleCallback' in window){requestIdleCallback(loadFbqScript,{timeout:2000});}
+  else{window.addEventListener('load',loadFbqScript);}
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

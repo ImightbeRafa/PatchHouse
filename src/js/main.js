@@ -56,13 +56,18 @@ const FULL_HOUSE_PRICE_BY_COUNT = {
 };
 
 const PATCH_ASSETS = {
-  focus: { label: 'Focus', image: '/images/focus.jpg' },
-  nad: { label: 'NAD', image: '/images/nad.jpg' },
-  energy: { label: 'Energy', image: '/images/energy.jpg' },
-  glp1: { label: 'GLP-1', image: '/images/glp1.jpg' },
-  dopamine: { label: 'Dopamine', image: '/images/dopamine.jpg' },
-  stress: { label: 'Stress', image: '/images/stressdown.jpg' }
+  focus: { label: 'Focus', image: '/images/focus-thumb.webp', fallback: '/images/focus.jpg' },
+  nad: { label: 'NAD', image: '/images/nad-thumb.webp', fallback: '/images/nad.jpg' },
+  energy: { label: 'Energy', image: '/images/energy-thumb.webp', fallback: '/images/energy.jpg' },
+  glp1: { label: 'GLP-1', image: '/images/glp1-thumb.webp', fallback: '/images/glp1.jpg' },
+  dopamine: { label: 'Dopamine', image: '/images/dopamine-thumb.webp', fallback: '/images/dopamine.jpg' },
+  stress: { label: 'Stress', image: '/images/stressdown-thumb.webp', fallback: '/images/stressdown.jpg' }
 };
+
+function patchImageHtml(key) {
+  const asset = PATCH_ASSETS[key];
+  return `<picture><source type="image/webp" srcset="${asset.image}"><img src="${asset.fallback}" alt="${asset.label}" width="64" height="64" loading="lazy" decoding="async"></picture>`;
+}
 
 function getAvailableFullHousePatchKeys() {
   return SINGLE_PATCH_ORDER.filter(key => !SOLD_OUT.includes(key) && !COMBO_EXCLUDED.includes(key));
@@ -254,7 +259,7 @@ function updateFullHouseDisplay() {
     const productsEl = card.querySelector('.combo-products-full');
     if (productsEl) {
       productsEl.innerHTML = patchKeys
-        .map(key => `<img src="${PATCH_ASSETS[key].image}" alt="${PATCH_ASSETS[key].label}" loading="lazy">`)
+        .map(key => patchImageHtml(key))
         .join('');
     }
 
@@ -280,9 +285,15 @@ const nav = document.getElementById('nav');
 const navToggle = document.getElementById('nav-toggle');
 const navLinks = document.getElementById('nav-links');
 
+let scrollTicking = false;
 window.addEventListener('scroll', () => {
-  if (nav) nav.classList.toggle('scrolled', window.scrollY > 50);
-});
+  if (scrollTicking) return;
+  scrollTicking = true;
+  requestAnimationFrame(() => {
+    if (nav) nav.classList.toggle('scrolled', window.scrollY > 50);
+    scrollTicking = false;
+  });
+}, { passive: true });
 
 if (navToggle && navLinks) {
   navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
@@ -466,6 +477,42 @@ function setupMetaViewContentObservers() {
 if (typeof window !== 'undefined' && typeof IntersectionObserver !== 'undefined') {
   setupMetaViewContentObservers();
 }
+
+function setupLazyVideos() {
+  const videos = document.querySelectorAll('video[data-lazy-video]');
+  if (!videos.length) return;
+
+  function activateVideo(video) {
+    if (video.dataset.loaded) return;
+    const source = video.querySelector('source[data-src]');
+    if (!source) return;
+
+    source.src = source.dataset.src;
+    video.dataset.loaded = 'true';
+
+    const tryPlay = () => {
+      video.play().catch(() => {});
+    };
+
+    video.addEventListener('loadeddata', tryPlay, { once: true });
+    video.load();
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const video = entry.target;
+      if (entry.isIntersecting) {
+        activateVideo(video);
+      } else {
+        video.pause();
+      }
+    });
+  }, { rootMargin: '300px' });
+
+  videos.forEach((video) => observer.observe(video));
+}
+
+setupLazyVideos();
 
 // --- FAQ Accordion ---
 document.querySelectorAll('.faq-question').forEach(question => {

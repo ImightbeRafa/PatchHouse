@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "images": "node scripts/optimize-images.js",
+    "build": "npm run images && vite build",
     "preview": "vite preview"
   },
   "keywords": [
@@ -17,8 +18,8 @@
   ],
   "author": "PatchHouse",
   "license": "MIT",
-  "dependencies": {},
   "devDependencies": {
+    "sharp": "^0.35.3",
     "terser": "^5.44.1",
     "vite": "^5.0.0"
   }
