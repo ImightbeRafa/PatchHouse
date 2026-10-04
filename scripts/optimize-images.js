@@ -40,7 +40,8 @@ const SQUARES = [
   { suffix: 'gallery', size: 1000, quality: 82 }
 ];
 
-const VIDEOS = ['vid1', 'vidsar', 'vid3'];
+/** [name, source file in assets-src/video]. The .mov originals are large and gitignored. */
+const VIDEOS = [['vid1', 'vid1.mp4'], ['vidsar', 'vidsar.mp4'], ['vid3', 'vid3.mp4'], ['vid4', 'vid4.mov'], ['vid5', 'vid5.mov'], ['vid6', 'vid6.mov']];
 
 const kb = async (file) => Math.round((await fs.stat(file)).size / 1024);
 
@@ -68,14 +69,14 @@ async function explainer() {
 }
 
 async function videos() {
-  for (const name of VIDEOS) {
-    const input = path.join(srcDir, 'video', `${name}.mp4`);
+  for (const [name, file] of VIDEOS) {
+    const input = path.join(srcDir, 'video', file);
     const out = path.join(outDir, `${name}.mp4`);
     try {
       await execFileAsync(FFMPEG, [
         '-y', '-loglevel', 'error', '-i', input,
         '-vf', 'scale=540:-2:flags=lanczos,fps=30',
-        '-c:v', 'libx264', '-preset', 'slow', '-crf', '29', '-profile:v', 'main', '-pix_fmt', 'yuv420p',
+        '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-profile:v', 'main', '-pix_fmt', 'yuv420p',
         '-movflags', '+faststart', '-c:a', 'aac', '-b:a', '64k', '-ac', '1', out
       ], { timeout: 300000 });
       console.log(`  ${name}.mp4  ${await kb(out)} KB`);
@@ -86,13 +87,13 @@ async function videos() {
 }
 
 async function posters() {
-  for (const name of VIDEOS) {
-    const input = path.join(srcDir, 'video', `${name}.mp4`);
+  for (const [name, file] of VIDEOS) {
+    const input = path.join(srcDir, 'video', file);
     const frame = path.join(outDir, `${name}-frame.jpg`);
     const out = path.join(outDir, `${name}-poster.webp`);
     try {
       await execFileAsync(FFMPEG, ['-y', '-ss', '1', '-i', input, '-vframes', '1', '-q:v', '3', frame], { timeout: 60000 });
-      await sharp(frame).resize({ width: 360, withoutEnlargement: true }).webp({ quality: 74 }).toFile(out);
+      await sharp(frame).resize({ width: 540, withoutEnlargement: true }).webp({ quality: 82 }).toFile(out);
       await fs.unlink(frame).catch(() => {});
       console.log(`  ${name}-poster.webp  ${await kb(out)} KB`);
     } catch (err) {

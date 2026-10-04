@@ -139,9 +139,12 @@ for (const s of SCREENS) {
     fs.writeFileSync(wrap, `<body style="margin:0;background:#fff"><iframe src="screens/${s.id}-${d.key}.html" style="width:${d.w}px;height:${h}px;border:0;display:block"></iframe>`);
     const png = path.join(out, `_${s.id}-${d.key}.png`);
     try {
-      execFileSync(CHROME, ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--window-size=${Math.max(d.w, 500)},${h}`, '--virtual-time-budget=12000', `--screenshot=${png}`, 'file:///' + wrap.split(path.sep).join('/')], { stdio: 'ignore', timeout: 120000 });
-      await sharp(png).extract({ left: 0, top: 0, width: d.w, height: Math.min(h, (await sharp(png).metadata()).height) }).webp({ quality: 82 }).toFile(path.join(out, 'img', `${s.id}-${d.key}.webp`));
-      console.log(`  img ${s.id}-${d.key}`);
+      // 2x pixels for a sharp preview, limited by Chrome's max screenshot height (~16k px).
+      const scale = Math.max(1, Math.min(2, Math.floor((15800 / h) * 10) / 10));
+      execFileSync(CHROME, ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--force-device-scale-factor=${scale}`, `--window-size=${Math.max(d.w, 500)},${h}`, '--virtual-time-budget=12000', `--screenshot=${png}`, 'file:///' + wrap.split(path.sep).join('/')], { stdio: 'ignore', timeout: 180000 });
+      const meta = await sharp(png).metadata();
+      await sharp(png).extract({ left: 0, top: 0, width: Math.min(meta.width, Math.round(d.w * scale)), height: Math.min(meta.height, Math.round(h * scale)) }).webp({ quality: 90, effort: 4 }).toFile(path.join(out, 'img', `${s.id}-${d.key}.webp`));
+      console.log(`  img ${s.id}-${d.key} @${scale}x`);
     } finally {
       fs.rmSync(wrap, { force: true });
       fs.rmSync(png, { force: true });

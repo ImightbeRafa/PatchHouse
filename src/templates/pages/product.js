@@ -25,7 +25,7 @@ function gallery(p, cat) {
       html: `<div class="slide-html"><h2>Qué incluye</h2><ul class="inc-list">${members.map((m) => `<li><img src="${productImage(m, 'thumb')}" alt="" width="48" height="48" loading="lazy"><div><b>${esc(m.name)}</b><span>${esc(m.tagline)}</span></div><em>${formatCRC(SINGLE_PRICE)}</em></li>`).join('')}</ul><p class="slide-note">Juntos: <b>${formatCRC(p.price)}</b> en vez de ${formatCRC(p.compareAt)}. Cada paquete trae 30 parches.</p></div>`
     });
   } else {
-    slides.push({ label: 'Beneficios', html: `<div class="slide-html"><h2>Lo que vas a notar</h2><ul class="tick-list">${p.benefits.map((b) => `<li>${esc(b)}</li>`).join('')}</ul></div>` });
+    slides.push({ label: 'Beneficios', thumb: `/images/${p.key}-benefits-thumb.webp`, html: `<img src="/images/${p.key}-benefits.webp" alt="Beneficios de ${esc(p.name)}: ${esc(p.benefits.join('; '))}" width="1000" height="1000" loading="lazy" decoding="async">` });
     slides.push({ label: 'Ingredientes', html: `<div class="slide-html"><h2>Ingredientes clave</h2><ul class="ing-list">${p.ingredients.map(([n, r]) => `<li><b>${esc(n)}</b><span>${esc(r)}</span></li>`).join('')}</ul></div>` });
   }
   slides.push({ label: 'Cómo usar', html: `<div class="slide-html"><h2>Así se usa</h2><ol class="num-list">${COMMON_USAGE.map((s, i) => `<li><i>${i + 1}</i><div><b>${esc(s.title)}</b><span>${esc(s.text)}</span></div></li>`).join('')}</ol></div>` });

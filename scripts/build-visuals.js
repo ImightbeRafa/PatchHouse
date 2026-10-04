@@ -183,11 +183,78 @@ async function infographic(key) {
   const html = path.join(tmp, `${key}.html`);
   const png = path.join(tmp, `${key}.png`);
   fs.writeFileSync(html, infoHtml(key));
-  execFileSync(CHROME, ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1', '--window-size=1000,1000', '--virtual-time-budget=4000', `--screenshot=${png}`, pathToFileURL(html).href], { stdio: 'ignore', timeout: 60000 });
-  await sharp(png).resize(1000, 1000).webp({ quality: 86, effort: 5 }).toFile(path.join(OUT, `${key}-info.webp`));
+  execFileSync(CHROME, ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=2', '--window-size=1000,1000', '--virtual-time-budget=4000', `--screenshot=${png}`, pathToFileURL(html).href], { stdio: 'ignore', timeout: 60000 });
+  await sharp(png).resize(1400, 1400).webp({ quality: 88, effort: 5 }).toFile(path.join(OUT, `${key}-info.webp`));
   await sharp(png).resize(160, 160).webp({ quality: 80 }).toFile(path.join(OUT, `${key}-info-thumb.webp`));
   fs.rmSync(tmp, { recursive: true, force: true });
   console.log(`  ${key}-info`);
+}
+
+
+/* ---------- benefits banner (modelled on the GLP-1 "Daily Wellness Support" artwork) ---------- */
+/** Four short, compliant labels per patch (+ optional footnote for the nutrient claim). */
+const BANNER = {
+  glp1: { head: ['Apoyo diario', 'para tu rutina de alimentación'], items: [['Rutina de', 'alimentación'], ['Metabolismo', 'normal*'], ['Hábitos', 'saludables'], ['Bienestar', 'diario']], note: '*El cromo contribuye al metabolismo normal de los macronutrientes.' },
+  focus: { head: ['Apoyo diario', 'para tu enfoque'], items: [['Apoyo para la', 'concentración'], ['Claridad', 'mental'], ['Estudio y', 'trabajo'], ['Sin', 'pastillas']], note: '' },
+  energy: { head: ['Energía', 'para tus días largos'], items: [['Estado de', 'alerta'], ['Liberación', 'gradual'], ['Entreno y', 'trabajo'], ['Metabolismo', 'energético*']], note: '*Las vitaminas B contribuyen al metabolismo energético normal. Contiene cafeína.' },
+  stress: { head: ['Apoyo diario', 'para tus días de mucha carga'], items: [['Días', 'exigentes'], ['Sistema', 'nervioso*'], ['Rutina', 'diaria'], ['Discreto y', 'práctico']], note: '*El complejo B contribuye al funcionamiento normal del sistema nervioso.' },
+  dopamine: { head: ['Apoyo diario', 'para tu bienestar'], items: [['Bienestar', 'diario'], ['Función', 'psicológica*'], ['Días', 'exigentes'], ['Sin', 'pastillas']], note: '*La vitamina C contribuye al funcionamiento psicológico normal.' },
+  nad: { head: ['Apoyo diario', 'para tu vitalidad'], items: [['Energía', 'celular'], ['Con', 'antioxidantes'], ['Vitalidad', 'diaria'], ['Un parche', 'al día']], note: '' }
+};
+const BANNER_ICONS = [
+  '<path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/>',
+  '<path d="M3 12h4l2.5-6 5 12L17 12h4"/>',
+  '<path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19c3-5 6-8 10-10"/>',
+  '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>'
+];
+
+async function benefitsBanner(key) {
+  if (!CHROME) return;
+  const { c, ink, deep } = PACK_COLORS[key];
+  const b = BANNER[key];
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ph-banner-'));
+  const packPng = path.join(tmp, 'pack.png');
+  await sharp(await pack(key, 1100)).toFile(packPng);
+  const font = pathToFileURL(path.join(root, 'public/fonts/plus-jakarta-sans-latin.woff2')).href;
+  const icon = (i) => `<svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${BANNER_ICONS[i]}</svg>`;
+  const bubble = (i, pos) => `<div class="b ${pos}"><div class="ic">${icon(i)}</div><div class="lb"><span>${b.items[i][0]}</span><b>${b.items[i][1]}</b></div></div>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>
+  @font-face{font-family:PJS;src:url('${font}') format('woff2');font-weight:200 800}
+  *{box-sizing:border-box;margin:0}
+  body{width:1000px;height:1000px;overflow:hidden;position:relative;font-family:PJS,Arial,sans-serif;background:radial-gradient(70% 60% at 50% 55%,#fff 0%,${tint(c, 0.82)} 70%,${tint(c, 0.7)} 100%);color:#1a1a2e}
+  h1{position:absolute;top:52px;left:40px;right:40px;text-align:center;line-height:1.08;font-weight:800;letter-spacing:-.02em}
+  h1 .a{display:block;font-size:66px;color:${deep}}
+  h1 .b2{display:block;font-size:40px;font-weight:700;color:#2a2a3a;margin-top:6px}
+  .orn{position:absolute;top:208px;left:50%;transform:translateX(-50%);color:${c};font-size:26px}
+  .pack{position:absolute;left:50%;top:268px;height:600px;transform:translateX(-50%);filter:drop-shadow(0 30px 34px rgba(26,26,46,.25))}
+  .disc{position:absolute;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${tint(c, 0.45)},${c});box-shadow:0 12px 24px rgba(26,26,46,.22);border:6px solid rgba(255,255,255,.75)}
+  .d1{left:302px;top:760px;transform:rotate(-12deg)} .d2{left:360px;top:800px;width:120px;height:120px}
+  .b{position:absolute;width:230px;display:grid;justify-items:center;gap:12px;text-align:center}
+  .ic{width:132px;height:132px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 10px 30px ${tint(c, 0.35)};border:3px solid ${tint(c, 0.55)}}
+  .ic svg{width:64px;height:64px}
+  .lb span{display:block;font-size:26px;font-weight:700;color:${deep};line-height:1.1}
+  .lb b{display:block;font-size:26px;font-weight:600;color:#2a2a3a;line-height:1.15}
+  .tl{left:28px;top:300px} .tr{right:28px;top:300px} .bl{left:28px;top:600px} .br{right:28px;top:600px}
+  .pill{position:absolute;left:50%;bottom:${b.note ? 78 : 44}px;transform:translateX(-50%);background:#fff;border:2px solid ${tint(c, 0.4)};color:${deep};font-weight:700;font-size:24px;padding:12px 26px;border-radius:999px;white-space:nowrap;box-shadow:0 8px 20px rgba(26,26,46,.08)}
+  .note{position:absolute;left:60px;right:60px;bottom:30px;text-align:center;font-size:17px;color:#5a5a68}
+  </style></head><body>
+  <h1><span class="a">${b.head[0]}</span><span class="b2">${b.head[1]}</span></h1>
+  <div class="orn">❦</div>
+  <div class="disc d1"></div><div class="disc d2"></div>
+  <img class="pack" src="${pathToFileURL(packPng).href}" alt="">
+  ${bubble(0, 'tl')}${bubble(1, 'tr')}${bubble(2, 'bl')}${bubble(3, 'br')}
+  <div class="pill">🌿 Ingredientes de origen natural</div>
+  ${b.note ? `<div class="note">${b.note}</div>` : ''}
+  </body></html>`;
+  const htmlFile = path.join(tmp, 'b.html');
+  const png = path.join(tmp, 'b.png');
+  fs.writeFileSync(htmlFile, html);
+  execFileSync(CHROME, ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=2', '--window-size=1000,1000', '--virtual-time-budget=4000', `--screenshot=${png}`, pathToFileURL(htmlFile).href], { stdio: 'ignore', timeout: 60000 });
+  await sharp(png).resize(1400, 1400).webp({ quality: 88, effort: 5 }).toFile(path.join(OUT, `${key}-benefits.webp`));
+  await sharp(png).resize(160, 160).webp({ quality: 80 }).toFile(path.join(OUT, `${key}-benefits-thumb.webp`));
+  fs.rmSync(tmp, { recursive: true, force: true });
+  console.log(`  ${key}-benefits`);
+  void ink;
 }
 
 /** Every Full House variant the store can produce: all eligible patches, or one of them sold out. */
@@ -218,4 +285,7 @@ console.log('  hero-packs');
 
 console.log('Infographics...');
 for (const key of PATCH_ORDER) await infographic(key);
+
+console.log('Benefit banners...');
+for (const key of PATCH_ORDER) await benefitsBanner(key);
 console.log('Done.');

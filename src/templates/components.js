@@ -38,19 +38,26 @@ export function productCard(p, cat) {
 }
 
 export const REELS = [
+  { src: '/images/vid4.mp4', poster: '/images/vid4-poster.webp', title: 'Una fórmula para cada momento', sub: 'Energy, Focus, GLP-1 y más' },
   { src: '/images/vid1.mp4', poster: '/images/vid1-poster.webp', title: 'Aplicalo en segundos', sub: 'Así de fácil se pega' },
+  { src: '/images/vid5.mp4', poster: '/images/vid5-poster.webp', title: 'Entre el trabajo y el estrés', sub: 'Focus para tus horas de compu' },
   { src: '/images/vidsar.mp4', poster: '/images/vidsar-poster.webp', title: 'Discreto durante el día', sub: 'Va debajo de la ropa' },
+  { src: '/images/vid6.mp4', poster: '/images/vid6-poster.webp', title: 'Parte de mi rutina', sub: 'Energy para los días pesados' },
   { src: '/images/vid3.mp4', poster: '/images/vid3-poster.webp', title: 'Bienestar sin complicarlo', sub: 'Tu rutina, sin pastillas' }
 ];
 
 /** Vertical (9:16) videos: poster only until visible, muted autoplay, tap speaker for sound. */
 export function reels() {
-  return `<div class="reels" data-reels>${REELS.map((r, i) => `
+  return `<div class="reels-wrap">
+  <button class="reels-nav prev" type="button" aria-label="Videos anteriores" data-reels-prev>‹</button>
+  <button class="reels-nav next" type="button" aria-label="Más videos" data-reels-next>›</button>
+  <div class="reels" data-reels>${REELS.map((r, i) => `
   <figure class="reel">
     <video muted loop playsinline preload="none" poster="${r.poster}" data-src="${r.src}" aria-label="${esc(r.title)}"></video>
     <button class="sound" type="button" aria-label="Activar sonido" aria-pressed="false" data-sound>${icons.sound}</button>
     <figcaption>${esc(r.title)}<br><span style="font-weight:500;opacity:.85">${esc(r.sub)}</span></figcaption>
-  </figure>`).join('')}</div>`;
+  </figure>`).join('')}</div>
+</div>`;
 }
 
 export const BENEFITS = [

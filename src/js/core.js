@@ -198,5 +198,22 @@ function initReels() {
 }
 initReels();
 
+/* carousel arrows (desktop) */
+$$('.reels-wrap').forEach((wrap) => {
+  const track = $('[data-reels]', wrap);
+  const prev = $('[data-reels-prev]', wrap);
+  const next = $('[data-reels-next]', wrap);
+  if (!track || !prev || !next) return;
+  const step = () => (track.querySelector('.reel')?.getBoundingClientRect().width || 240) * 2;
+  const sync = () => {
+    prev.disabled = track.scrollLeft <= 4;
+    next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+  };
+  prev.addEventListener('click', () => track.scrollBy({ left: -step(), behavior: 'smooth' }));
+  next.addEventListener('click', () => track.scrollBy({ left: step(), behavior: 'smooth' }));
+  track.addEventListener('scroll', sync, { passive: true });
+  sync();
+});
+
 /* ---------- legacy links: old single-page checkout anchor ---------- */
 if (location.pathname === '/' && location.hash === '#pedido') location.replace('/checkout/');

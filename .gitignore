@@ -21,3 +21,6 @@ Thumbs.db
 /privacidad/
 /public/sitemap.xml
 /public/robots.txt
+
+# Large original videos (kept locally, re-encoded copies live in public/images)
+/assets-src/video/*.mov
