@@ -1,21 +1,18 @@
 {
   "name": "patchhouse",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "PatchHouse.CR – Parches Transdérmicos Naturales | Costa Rica",
   "type": "module",
+  "engines": { "node": ">=20" },
   "scripts": {
-    "dev": "vite",
+    "pages": "node scripts/build-pages.js",
+    "dev": "node scripts/build-pages.js && vite",
+    "build": "node scripts/build-pages.js && vite build",
+    "preview": "vite preview",
     "images": "node scripts/optimize-images.js",
-    "build": "npm run images && vite build",
-    "preview": "vite preview"
+    "test": "node --test \"tests/*.test.js\""
   },
-  "keywords": [
-    "ecommerce",
-    "patchhouse",
-    "parches-transdermicos",
-    "bienestar",
-    "costa-rica"
-  ],
+  "keywords": ["ecommerce", "patchhouse", "parches-transdermicos", "bienestar", "costa-rica"],
   "author": "PatchHouse",
   "license": "MIT",
   "devDependencies": {

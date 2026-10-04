@@ -1,6 +1,7 @@
-import { sendPaymentProcessingAlert } from '../utils/email.js';
-import { processPaidOrder } from '../utils/fulfillment.js';
-import { decodeReturnData, findOrderTotalMismatch } from '../utils/order.js';
+import { sendPaymentProcessingAlert } from '../_lib/email.js';
+import { processPaidOrder } from '../_lib/fulfillment.js';
+import { findOrderTotalMismatch } from '../_lib/order.js';
+import { verifyOrderToken } from '../_lib/sign.js';
 import crypto from 'crypto';
 
 const processedWebhooks = new Set();
@@ -35,12 +36,6 @@ function verifyWebhookSignature(req) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-tilopay-secret, hash-tilopay');
-
-  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
   if (req.method === 'GET') {
     return res.json({ status: 'ok', message: 'Tilopay webhook endpoint is active (PatchHouse)', timestamp: new Date().toISOString() });
@@ -114,14 +109,14 @@ export default async function handler(req, res) {
 
     let order;
     try {
-      order = decodeReturnData(returnData);
+      order = verifyOrderToken(returnData);
       const { mismatches } = findOrderTotalMismatch(order);
       if (mismatches.length > 0) {
         console.warn(`[Webhook] Correcting untrusted order totals for ${orderId}: ${mismatches.join('; ')}`);
       }
     } catch (e) {
       await sendPaymentProcessingAlert({
-        reason: 'Approved Tilopay webhook had invalid returnData',
+        reason: 'Approved Tilopay webhook had invalid or unsigned returnData',
         orderId,
         transactionId,
         source: 'webhook',
@@ -149,7 +144,7 @@ export default async function handler(req, res) {
       processedWebhooks.add(dedupeKey);
     }
 
-    return res.json({
+    return res.status(result.success ? 200 : 500).json({
       success: result.success,
       alreadyProcessed: result.alreadyProcessed || false,
       orderId,

@@ -1,242 +1,120 @@
 /**
- * PatchHouse – Tilopay Create Payment (multi-item cart)
+ * PatchHouse – Tilopay: create a hosted payment for the cart.
+ * Prices are recomputed here from the shared catalog; the browser's totals are never trusted.
  */
+import { sendMetaEvent, generateEventId } from '../_lib/meta.js';
+import { catalog } from '../_lib/order.js';
+import { signOrder, hasSigningSecret } from '../_lib/sign.js';
+import { guardPost, parseBody, appUrl, newOrderId, ORDER_ID_RE, cardConfig, isDryRun } from '../_lib/http.js';
+import { validateCheckout, sanitizeCustomer } from '../../shared/validate.js';
 
-import { sendMetaEvent, generateEventId } from '../utils/meta.js';
-import { PRODUCTS, SHIPPING_COST, isSoldOut } from '../utils/order.js';
+const withTimeout = (ms = 12000) => ({ signal: AbortSignal.timeout(ms) });
+const PROVINCE_STATES = { 'San José': 'SJ', 'Alajuela': 'A', 'Cartago': 'C', 'Heredia': 'H', 'Guanacaste': 'G', 'Puntarenas': 'P', 'Limón': 'L' };
 
-function parseItems(body) {
-  let items = [];
-  if (body.items) {
-    try {
-      items = typeof body.items === 'string' ? JSON.parse(body.items) : body.items;
-    } catch (e) {
-      return null;
-    }
-  } else if (body.producto) {
-    items = [{ key: body.producto, qty: parseInt(body.cantidad) || 1 }];
-  }
-  return items.filter(i => PRODUCTS[i.key] && i.qty > 0 && !isSoldOut(i.key));
-}
+async function authenticateTilopay(baseUrl) {
+  const { TILOPAY_USER: apiuser, TILOPAY_PASSWORD: password } = process.env;
+  if (!apiuser || !password) throw new Error('Tilopay credentials not configured');
 
-function getClientOrderId(value) {
-  const id = String(value || '').trim();
-  if (!/^ORD-\d{10,}-\d{4}$/.test(id)) return null;
-  return id;
-}
-
-const REQUIRED_FIELDS = ['nombre', 'telefono', 'email', 'provincia', 'canton', 'distrito', 'direccion'];
-
-function getMissingRequiredFields(body) {
-  const missing = REQUIRED_FIELDS.filter(field => !String(body[field] || '').trim());
-  const nameParts = String(body.nombre || '').trim().split(/\s+/).filter(Boolean);
-  const phoneDigits = String(body.telefono || '').replace(/\D/g, '');
-
-  if (body.nombre && nameParts.length < 2 && !missing.includes('nombre')) {
-    missing.push('nombre');
-  }
-  if (body.telefono && phoneDigits.length < 8 && !missing.includes('telefono')) {
-    missing.push('telefono');
-  }
-  if (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.email).trim()) && !missing.includes('email')) {
-    missing.push('email');
-  }
-
-  return missing;
-}
-
-async function authenticateTilopay() {
-  const baseUrl = process.env.TILOPAY_BASE_URL || 'https://app.tilopay.com/api/v1';
-  const apiUser = process.env.TILOPAY_USER;
-  const apiPassword = process.env.TILOPAY_PASSWORD;
-
-  if (!apiUser || !apiPassword) {
-    throw new Error('Tilopay credentials not configured in environment variables');
-  }
-
-  const loginResponse = await fetch(`${baseUrl}/login`, {
+  const res = await fetch(`${baseUrl}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ apiuser: apiUser, password: apiPassword })
+    body: JSON.stringify({ apiuser, password }),
+    ...withTimeout()
   });
-
-  if (!loginResponse.ok) {
-    const errorText = await loginResponse.text();
-    throw new Error(`Failed to authenticate with Tilopay: ${loginResponse.status} ${errorText}`);
-  }
-
-  const loginData = await loginResponse.json();
-  if (!loginData.access_token) {
-    throw new Error('No access token in Tilopay response');
-  }
-
-  return loginData.access_token;
+  if (!res.ok) throw new Error(`Tilopay login failed: ${res.status} ${await res.text()}`);
+  const data = await res.json();
+  if (!data.access_token) throw new Error('No access token in Tilopay response');
+  return data.access_token;
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-
-  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
-  if (req.method !== 'POST') { return res.status(405).json({ error: 'Method not allowed' }); }
-
-  console.log('🔵 [Tilopay] Creating payment link...');
+  if (!guardPost(req, res)) return;
 
   try {
-    const requestBody = Object.fromEntries(Object.entries(req.body || {}).map(([key, value]) => [
-      key,
-      typeof value === 'string' ? value.trim() : value
-    ]));
-    const { nombre, telefono, email, provincia, canton, distrito, direccion, comentarios, clientOrderId } = requestBody;
+    const body = parseBody(req);
+    if (body.website) return res.status(400).json({ error: 'Rejected' }); // honeypot
 
-    const missingFields = getMissingRequiredFields(requestBody);
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        message: 'Faltan datos requeridos para continuar.',
-        missingFields
-      });
+    const customer = sanitizeCustomer(body);
+    const errors = validateCheckout(customer);
+    if (Object.keys(errors).length) {
+      return res.status(400).json({ error: 'Invalid fields', message: 'Faltan datos requeridos para continuar.', errors, missingFields: Object.keys(errors) });
     }
 
-    const items = parseItems(requestBody);
-    if (!items || items.length === 0) {
-      return res.status(400).json({ error: 'No valid products in order' });
+    let rawItems = body.items;
+    if (typeof rawItems === 'string') {
+      try { rawItems = JSON.parse(rawItems); } catch { rawItems = []; }
+    }
+    const priced = catalog.priceOrder(rawItems);
+    if (!priced.items.length) {
+      return res.status(400).json({ error: 'No valid products', message: 'Tu carrito no tiene productos disponibles.' });
     }
 
-    let subtotal = 0;
-    const itemDetails = items.map(i => {
-      const p = PRODUCTS[i.key];
-      const lineTotal = p.price * i.qty;
-      subtotal += lineTotal;
-      return { key: i.key, name: p.name, price: p.price, qty: i.qty, lineTotal };
-    });
+    if (!isDryRun() && !cardConfig().enabled) throw new Error('Tilopay is not configured');
+    if (!hasSigningSecret()) throw new Error('Order signing secret is not configured');
 
-    const total = subtotal + SHIPPING_COST;
-    const orderId = getClientOrderId(clientOrderId) || `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    console.log('🔑 [Tilopay] Authenticating...');
-    const accessToken = await authenticateTilopay();
-    console.log('✅ [Tilopay] Authentication successful');
-
+    const orderId = ORDER_ID_RE.test(String(body.clientOrderId || '')) ? body.clientOrderId : newOrderId();
     const baseUrl = process.env.TILOPAY_BASE_URL || 'https://app.tilopay.com/api/v1';
-    const apiKey = process.env.TILOPAY_API_KEY;
-    let appUrl = process.env.APP_URL || 'https://patchhouse.shopping';
+    const site = appUrl();
+    const [firstName, ...rest] = customer.nombre.split(/\s+/);
+    const lastName = rest.join(' ') || firstName;
+    const state = `CR-${PROVINCE_STATES[customer.provincia] || 'SJ'}`;
 
-    if (appUrl && !appUrl.startsWith('http://') && !appUrl.startsWith('https://')) {
-      appUrl = `https://${appUrl}`;
+    // Compact, signed snapshot of the order; prices are re-derived on confirmation.
+    const snapshot = {
+      orderId, ...customer,
+      items: priced.items.map(({ key, qty }) => ({ key, qty })),
+      createdAt: new Date().toISOString()
+    };
+
+    if (isDryRun()) {
+      // Sandbox: skip Tilopay and send the browser straight to our own success page with a signed snapshot.
+      const params = new URLSearchParams({ orderId, code: '1', 'tilopay-transaction': 'DRYRUN', returnData: signOrder(snapshot) });
+      return res.json({ success: true, orderId, metaEventId: generateEventId('ic', orderId), paymentUrl: `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/success.html?${params}`, total: priced.total, dryRun: true });
     }
-    appUrl = appUrl.replace(/\/+$/, '');
 
-    if (!apiKey) {
-      throw new Error('TILOPAY_API_KEY not configured in environment variables');
-    }
-
-    const nameParts = nombre.split(' ');
-    const firstName = nameParts[0] || nombre;
-    const lastName = nameParts.slice(1).join(' ') || nombre;
-
-    const orderData = {
-      orderId, nombre, telefono, email,
-      provincia, canton, distrito, direccion,
-      items: itemDetails,
-      subtotal, shippingCost: SHIPPING_COST, total,
-      comentarios, createdAt: new Date().toISOString()
-    };
-    const encodedOrderData = Buffer.from(JSON.stringify(orderData)).toString('base64');
-    const provinceStates = {
-      'San José': 'SJ',
-      'Alajuela': 'A',
-      'Cartago': 'C',
-      'Heredia': 'H',
-      'Guanacaste': 'G',
-      'Puntarenas': 'P',
-      'Limón': 'L'
-    };
-
-    const paymentPayload = {
-      key: apiKey,
-      amount: Math.round(total),
-      currency: 'CRC',
-      redirect: `${appUrl}/success.html`,
-      hashVersion: 'V2',
-      billToFirstName: firstName,
-      billToLastName: lastName,
-      billToAddress: direccion,
-      billToAddress2: `${distrito}, ${canton}`,
-      billToCity: canton,
-      billToState: 'CR-' + (provinceStates[provincia] || 'SJ'),
-      billToZipPostCode: '10101',
-      billToCountry: 'CR',
-      billToTelephone: telefono,
-      billToEmail: email,
-      shipToFirstName: firstName,
-      shipToLastName: lastName,
-      shipToAddress: direccion,
-      shipToAddress2: `${distrito}, ${canton}`,
-      shipToCity: canton,
-      shipToState: 'CR-' + (provinceStates[provincia] || 'SJ'),
-      shipToZipPostCode: '10101',
-      shipToCountry: 'CR',
-      shipToTelephone: telefono,
-      orderNumber: orderId,
-      capture: '1',
-      subscription: '0',
-      platform: 'PatchHouse',
-      returnData: encodedOrderData,
-      token_version: 'v2'
-    };
-
-    console.log('📤 [Tilopay] Sending payment request...');
-
-    const captureResponse = await fetch(`${baseUrl}/processPayment`, {
+    const accessToken = await authenticateTilopay(baseUrl);
+    const payRes = await fetch(`${baseUrl}/processPayment`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify(paymentPayload)
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      ...withTimeout(),
+      body: JSON.stringify({
+        key: process.env.TILOPAY_API_KEY,
+        amount: Math.round(priced.total),
+        currency: 'CRC',
+        redirect: `${site}/success.html`,
+        hashVersion: 'V2',
+        billToFirstName: firstName, billToLastName: lastName,
+        billToAddress: customer.direccion, billToAddress2: `${customer.distrito}, ${customer.canton}`,
+        billToCity: customer.canton, billToState: state, billToZipPostCode: '10101', billToCountry: 'CR',
+        billToTelephone: customer.telefono, billToEmail: customer.email,
+        shipToFirstName: firstName, shipToLastName: lastName,
+        shipToAddress: customer.direccion, shipToAddress2: `${customer.distrito}, ${customer.canton}`,
+        shipToCity: customer.canton, shipToState: state, shipToZipPostCode: '10101', shipToCountry: 'CR',
+        shipToTelephone: customer.telefono,
+        orderNumber: orderId,
+        capture: '1',
+        subscription: '0',
+        platform: 'PatchHouse',
+        returnData: signOrder(snapshot),
+        token_version: 'v2'
+      })
     });
 
-    if (!captureResponse.ok) {
-      const errorText = await captureResponse.text();
-      console.error('❌ [Tilopay] Payment error:', errorText);
-      throw new Error(`Failed to create payment link: ${captureResponse.status} - ${errorText}`);
-    }
-
-    const paymentData = await captureResponse.json();
-    const paymentUrl = paymentData.urlPaymentForm || paymentData.url || paymentData.payment_url;
-
-    if (!paymentUrl) {
-      console.error('❌ [Tilopay] No payment URL in response:', paymentData);
-      throw new Error('No payment URL received from Tilopay');
-    }
+    if (!payRes.ok) throw new Error(`processPayment failed: ${payRes.status} ${await payRes.text()}`);
+    const payment = await payRes.json();
+    const paymentUrl = payment.urlPaymentForm || payment.url || payment.payment_url;
+    if (!paymentUrl) throw new Error('No payment URL received from Tilopay');
 
     const metaEventId = generateEventId('ic', orderId);
-    const contentIds = itemDetails.map(i => i.key);
-    const numItems = itemDetails.reduce((sum, i) => sum + i.qty, 0);
-    await sendMetaEvent('InitiateCheckout', metaEventId, orderData, req, {
-      value: total,
-      currency: 'CRC',
-      content_ids: contentIds,
-      content_type: 'product',
-      num_items: numItems
-    }, `${appUrl}/#pedido`).catch(() => {});
+    await sendMetaEvent('InitiateCheckout', metaEventId, customer, req, {
+      value: priced.total, currency: 'CRC', content_type: 'product',
+      content_ids: priced.items.map((i) => i.key),
+      num_items: priced.items.reduce((n, i) => n + i.qty, 0)
+    }, `${site}/checkout/`).catch(() => {});
 
-    return res.json({
-      success: true,
-      orderId,
-      metaEventId,
-      paymentUrl: paymentUrl,
-      transactionId: paymentData.id || paymentData.transaction_id
-    });
-
+    return res.json({ success: true, orderId, metaEventId, paymentUrl, total: priced.total });
   } catch (error) {
-    console.error('❌ [Tilopay] Create payment error:', error);
-    return res.status(500).json({
-      error: 'Failed to create payment',
-      message: 'Hubo un error al procesar tu pago. Por favor intentá de nuevo.'
-    });
+    console.error('[Tilopay] create-payment error:', error.message);
+    return res.status(500).json({ error: 'Failed to create payment', message: 'Hubo un error al conectar con el pago con tarjeta. Intentá de nuevo o pagá con SINPE Móvil.' });
   }
 }
