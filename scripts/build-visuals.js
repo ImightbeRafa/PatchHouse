@@ -285,11 +285,14 @@ for (const c of cat.combos()) if (c.key !== 'combo-full') await saveSquare(c.key
 for (const set of fullHouseVariants()) await saveSquare(`combo-full-${set.join('-')}`, await composition(set));
 
 console.log('Hero...');
-// Wide arc, back to front: outer pair, middle pair, inner pair.
-const HERO = [['focus', 190, 520, 470, -14], ['nad', 1310, 520, 470, 14], ['stress', 440, 480, 540, -8], ['dopamine', 1060, 480, 540, 8], ['glp1', 640, 450, 600, -3], ['energy', 860, 450, 600, 3]];
+// Two rows so every pack name stays readable: two raised packs in the back, four in front with minimal overlap.
+const HERO = [
+  ['dopamine', 412, 400, 470, -3], ['nad', 1162, 400, 470, 3],
+  ['focus', 225, 690, 540, -3], ['glp1', 600, 700, 560, -1], ['energy', 975, 700, 560, 1], ['stress', 1350, 690, 540, 3]
+];
 const heroLayers = [];
 for (const [k, x, y, h, deg] of HERO) heroLayers.push(...await layer(k, h, deg, x, y));
-const hero = await sharp({ create: { width: 1500, height: 900, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).composite(heroLayers).png().toBuffer();
+const hero = await sharp({ create: { width: 1580, height: 1080, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).composite(heroLayers).png().toBuffer();
 const heroTrim = await sharp(hero).trim({ threshold: 1 }).png().toBuffer();
 await sharp(heroTrim).webp({ quality: 86, alphaQuality: 90, effort: 5 }).toFile(path.join(OUT, 'hero-packs.webp'));
 for (const w of [600, 900]) await sharp(heroTrim).resize({ width: w }).webp({ quality: 82, alphaQuality: 85, effort: 6 }).toFile(path.join(OUT, `hero-packs-${w}.webp`));
