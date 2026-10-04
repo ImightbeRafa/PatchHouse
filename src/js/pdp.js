@@ -59,52 +59,49 @@ if (gallery) {
   thumbs.forEach((t, n) => { t.tabIndex = n === 0 ? 0 : -1; });
 }
 
-/* ---------- selection: pack (patches) or quantity (combos) ---------- */
+/* ---------- selection: option (product alone or a combo) × quantity ---------- */
 const atc = $('#atc');
 const buyNow = $('[data-buy-now]');
 const stickyBtn = $('[data-sticky-add]');
 const priceEl = $('[data-price-box] .price');
 const atcPrice = $('[data-atc-price]');
 const stickyPrice = $('[data-sticky-price]');
+const stickyName = $('[data-sticky] .sb-info b');
+const qtyOut = $('[data-qty-out]');
+const minus = $('[data-qty-minus]');
+const plus = $('[data-qty-plus]');
+const options = $$('input[name="opt"]');
+let selected = key;
 let qty = 1;
 
-function applySelection(total, compare, nextQty) {
-  qty = nextQty;
-  [atc, buyNow, stickyBtn].forEach((b) => { if (b) b.dataset.qty = String(qty); });
+function render() {
+  const total = catalog.linePrice(selected, qty);
+  const compare = catalog.lineCompare(selected, qty);
+  if (atc) { atc.dataset.add = selected; atc.dataset.qty = String(qty); }
+  if (buyNow) { buyNow.dataset.buyNow = selected; buyNow.dataset.qty = String(qty); }
   if (atcPrice) atcPrice.textContent = formatCRC(total);
   if (stickyPrice) stickyPrice.textContent = formatCRC(total);
+  if (stickyName) stickyName.textContent = catalog.products[selected]?.short || '';
   if (priceEl) {
     const save = compare - total;
     priceEl.innerHTML = `<b>${formatCRC(total)}</b>${save > 0 ? `<s>${formatCRC(compare)}</s><em>Ahorrás ${formatCRC(save)}</em>` : ''}`;
   }
+  if (qtyOut) {
+    qtyOut.textContent = String(qty);
+    minus.disabled = qty <= 1;
+    plus.disabled = qty >= 10;
+  }
 }
 
-const packs = $$('input[name="pack"]');
-if (packs.length) {
-  const sync = () => {
-    const sel = packs.find((p) => p.checked) || packs[0];
-    packs.forEach((p) => p.closest('.pack')?.classList.toggle('on', p === sel));
-    applySelection(Number(sel.dataset.price), Number(sel.dataset.compare), Number(sel.value));
-  };
-  packs.forEach((p) => p.addEventListener('change', sync));
-  sync();
-}
-
-const qtyOut = $('[data-qty-out]');
-if (qtyOut && product) {
-  const minus = $('[data-qty-minus]');
-  const plus = $('[data-qty-plus]');
-  const sync = (n) => {
-    n = Math.max(1, Math.min(10, n));
-    qtyOut.textContent = String(n);
-    minus.disabled = n <= 1;
-    plus.disabled = n >= 10;
-    applySelection(catalog.linePrice(key, n), catalog.lineCompare(key, n), n);
-  };
-  minus.addEventListener('click', () => sync(qty - 1));
-  plus.addEventListener('click', () => sync(qty + 1));
-  sync(1);
-}
+options.forEach((o) => o.addEventListener('change', () => {
+  const sel = options.find((x) => x.checked);
+  selected = sel ? sel.value : key;
+  options.forEach((x) => x.closest('.opt')?.classList.toggle('on', x.checked));
+  render();
+}));
+minus?.addEventListener('click', () => { qty = Math.max(1, qty - 1); render(); });
+plus?.addEventListener('click', () => { qty = Math.min(10, qty + 1); render(); });
+if (product) render();
 
 stickyBtn?.addEventListener('click', () => atc?.click());
 

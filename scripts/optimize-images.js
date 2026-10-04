@@ -29,7 +29,7 @@ const PRODUCTS = [
   ['focus', 'focus.jpg'],
   ['nad', 'nad.jpg'],
   ['energy', 'energy.jpg'],
-  ['glp1', 'glp1-placeholder.svg'],
+  ['glp1', 'glp1.jpg'],
   ['dopamine', 'dopamine.jpg'],
   ['stress', 'stressdown.jpg']
 ];

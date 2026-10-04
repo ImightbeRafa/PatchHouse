@@ -193,27 +193,39 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .primary-nav a:hover, .primary-nav a[aria-current='page'] { color: var(--ink); }
 }
 
-/* ---------- hero (home) ---------- */
-.hero { position: relative; overflow: hidden; color: #fff; background: linear-gradient(160deg, #1a1a2e 0%, #2d3250 38%, #424769 68%, #6d8f7f 100%); padding-block: 40px 48px; }
-.hero::after { content: ''; position: absolute; width: 520px; height: 520px; right: -160px; top: -180px; border-radius: 50%; background: rgba(184, 169, 212, .14); filter: blur(70px); pointer-events: none; }
-.hero-inner { position: relative; z-index: 1; display: grid; gap: 32px; align-items: center; }
-.hero-badge { display: inline-block; justify-self: start; padding: 7px 16px; border-radius: var(--radius-full); border: 1px solid rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .08); font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .9); }
-.hero h1 { color: #fff; font-size: clamp(34px, 7.5vw, 62px); font-weight: 800; line-height: 1.05; letter-spacing: -.025em; }
-.gradient-text { background: linear-gradient(90deg, #ff6b5a, #f0a04b, #f1c40f, #4cd08a, #4aa6e0, #b57edc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+/* ---------- hero (home): products left, copy right ---------- */
+.hero { position: relative; overflow: hidden; color: #fff; background: radial-gradient(120% 90% at 15% 20%, #3b3f6b 0%, #23253f 45%, #161729 100%); padding-block: 28px 56px; isolation: isolate; }
+.hero::before { content: ''; position: absolute; inset: 0; z-index: -1; background-image: radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px); background-size: 22px 22px; -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 85%); mask-image: linear-gradient(180deg, #000 0%, transparent 85%); }
+.hero-orbs i { position: absolute; z-index: -1; border-radius: 50%; filter: blur(70px); opacity: .55; }
+.hero-orbs .o1 { width: 420px; height: 420px; left: -120px; top: 10%; background: #8e44ad; }
+.hero-orbs .o2 { width: 360px; height: 360px; left: 30%; bottom: -160px; background: #e67e22; opacity: .35; }
+.hero-orbs .o3 { width: 380px; height: 380px; right: -140px; top: -120px; background: #27ae60; opacity: .35; }
+.hero-inner { position: relative; display: grid; gap: 28px; align-items: center; }
+.hero-visual { position: relative; padding-top: 24px; }
+.hero-ring { position: absolute; inset: 6% 8% 0; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 62%); }
+.hero-packs { position: relative; width: 100%; height: auto; filter: drop-shadow(0 30px 40px rgba(0,0,0,.35)); animation: float 7s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-10px); } }
+.float-chip { position: absolute; z-index: 2; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,.95); color: var(--dark); font-size: 13px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.25); white-space: nowrap; animation: float 6s ease-in-out infinite; }
+.float-chip b { font-weight: 800; }
+.float-chip.c1 { left: 2%; top: 0; }
+.float-chip.c2 { right: 3%; top: 8%; animation-delay: -2s; background: var(--cta); color: #fff; }
+.float-chip.c3 { left: 32%; bottom: -10px; animation-delay: -4s; }
 .hero-copy { display: grid; gap: 18px; }
-.hero-sub { font-size: 17px; line-height: 1.6; color: rgba(255, 255, 255, .78); max-width: 46ch; }
+.hero-badge { display: inline-block; justify-self: start; padding: 7px 16px; border-radius: var(--radius-full); border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.08); font-size: 13px; font-weight: 600; color: rgba(255,255,255,.92); }
+.hero h1 { color: #fff; font-size: clamp(36px, 7.5vw, 64px); font-weight: 800; line-height: 1.02; letter-spacing: -.03em; }
+.gradient-text { background: linear-gradient(90deg, #ff6b5a, #f0a04b, #f1c40f, #4cd08a, #4aa6e0, #b57edc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-sub { font-size: 17px; line-height: 1.6; color: rgba(255,255,255,.78); max-width: 46ch; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
-.hero-points { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: rgba(255, 255, 255, .85); font-weight: 600; }
+.hero-points { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: rgba(255,255,255,.85); font-weight: 600; }
 .hero-points li::before { content: '✓'; color: #7be0a6; margin-right: 6px; font-weight: 800; }
-.hero-stage { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 460px; }
-.hero-tile { position: relative; border-radius: var(--radius); overflow: hidden; background: #fff; aspect-ratio: 1; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); transition: transform .25s var(--ease); }
-.hero-tile:hover { transform: translateY(-3px); }
-.hero-tile img { width: 100%; height: 100%; object-fit: cover; }
-.hero-tile span { position: absolute; left: 6px; bottom: 6px; padding: 3px 8px; border-radius: 6px; background: rgba(255, 255, 255, .92); color: var(--dark); font-size: 11px; font-weight: 800; }
+.hero-pills { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.12); }
+.hero-pills a { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); font-size: 13px; font-weight: 600; color: #fff; transition: background .2s; }
+.hero-pills a::before { content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px rgba(255,255,255,.12); }
+.hero-pills a:hover { background: rgba(255,255,255,.16); }
 @media (min-width: 900px) {
-  .hero { padding-block: 72px 88px; }
-  .hero-inner { grid-template-columns: 1.05fr 1fr; gap: 64px; }
-  .hero-stage { justify-self: end; gap: 14px; }
+  .hero { padding-block: 64px 80px; }
+  .hero-inner { grid-template-columns: 1.12fr 1fr; gap: 48px; }
+  .float-chip { font-size: 14px; padding: 10px 16px; }
 }
 
 /* ---------- trust strip ---------- */
@@ -232,7 +244,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 .card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; transition: box-shadow .25s var(--ease), transform .25s var(--ease), border-color .25s; }
 .card:hover { box-shadow: var(--shadow); transform: translateY(-2px); border-color: var(--primary-soft); }
-.card-media { position: relative; display: block; aspect-ratio: 1; background: #fff; }
+.card-media { position: relative; display: block; aspect-ratio: 1; background: #fff; overflow: hidden; }
+.card-media img { transition: transform .5s var(--ease); }
+.card:hover .card-media img { transform: scale(1.04); }
 .card-media img { width: 100%; height: 100%; object-fit: cover; }
 .tag { position: absolute; left: 10px; top: 10px; z-index: 1; padding: 4px 10px; border-radius: var(--radius-full); background: var(--dark); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .03em; }
 .tag.save { background: var(--ok); }
@@ -366,6 +380,18 @@ body.has-sticky .wa-float { bottom: 84px; }
 .qty button:disabled { opacity: .35; cursor: not-allowed; }
 .qty output { min-width: 28px; text-align: center; font-weight: 800; color: var(--ink); }
 
+/* ---------- cart add-ons ---------- */
+.addons { margin: 8px 0 16px; padding: 14px; border-radius: var(--radius); background: var(--primary-faint); border: 1px solid var(--primary-soft); }
+.addons h3 { font-size: 14px; letter-spacing: .02em; margin-bottom: 8px; }
+.addon { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(58,143,106,.15); }
+.addon:first-of-type { border-top: 0; }
+.addon img { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: #fff; }
+.addon-main { display: grid; gap: 1px; min-width: 0; }
+.addon-main b { font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.addon-main span { font-size: 13px; font-weight: 700; color: var(--ink); }
+.addon-main s { font-weight: 500; color: var(--muted); margin-left: 4px; }
+.addon .btn { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+
 /* ---------- toast ---------- */
 .toast-region { position: fixed; left: 0; right: 0; bottom: 20px; z-index: 1200; display: grid; justify-items: center; gap: 8px; padding-inline: 16px; pointer-events: none; }
 .toast { pointer-events: auto; max-width: 420px; padding: 12px 18px; border-radius: var(--radius); background: var(--dark); color: #fff; font-size: 14px; font-weight: 600; box-shadow: var(--shadow-lg); animation: toast-in .25s var(--ease); display: flex; gap: 12px; align-items: center; }
@@ -451,6 +477,27 @@ body.has-sticky .wa-float { bottom: 84px; }
 .th img { width: 100%; height: 100%; object-fit: cover; }
 .th.on { border-color: var(--ink); color: var(--ink); }
 @media (min-width: 900px) { .th { flex-basis: 78px; height: 78px; } }
+
+/* ---------- option picker: product alone or a combo ---------- */
+.options { display: grid; gap: 10px; }
+.options legend { margin-bottom: 8px; }
+.opt { position: relative; display: grid; grid-template-columns: 20px 52px 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border: 2px solid var(--line); border-radius: var(--radius); background: var(--surface); cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+.opt:hover { border-color: #cfd6d2; }
+.opt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.opt .radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #b6b6c2; background: #fff; }
+.opt img { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; }
+.opt.on { border-color: var(--cta); background: #f3faf6; box-shadow: 0 6px 18px rgba(46,125,91,.12); }
+.opt.on .radio { border-color: var(--cta); box-shadow: inset 0 0 0 4px #fff, inset 0 0 0 10px var(--cta); }
+.opt:focus-within { outline: 3px solid var(--primary); outline-offset: 2px; }
+.opt-main { display: grid; gap: 1px; min-width: 0; }
+.opt-main b { color: var(--ink); font-size: 15px; line-height: 1.25; }
+.opt-main span { font-size: 12.5px; color: var(--muted); }
+.opt-price { display: grid; justify-items: end; text-align: right; }
+.opt-price b { color: var(--ink); font-size: 16px; font-weight: 800; }
+.opt-price s { font-size: 12px; color: var(--muted); }
+.opt-price em { font-style: normal; font-size: 11px; font-weight: 800; color: var(--ok); background: var(--ok-soft); padding: 1px 6px; border-radius: 5px; margin-top: 2px; }
+.opt-tag { position: absolute; top: -10px; right: 14px; padding: 2px 8px; border-radius: 6px; background: var(--cta); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .06em; }
+@media (max-width: 420px) { .opt { grid-template-columns: 20px 44px 1fr; } .opt img { width: 44px; height: 44px; } .opt-price { grid-column: 2 / -1; justify-items: start; text-align: left; display: flex; gap: 8px; align-items: baseline; } }
 
 /* ---------- buy box ---------- */
 .pdp-buy { display: grid; gap: 16px; align-content: start; min-width: 0; }
@@ -560,10 +607,10 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   <section class="pdp" data-product="dopamine">
     
 <div class="pdp-gallery" data-gallery="">
-  <div class="gal-main"><div class="slides"><div class="slide on" data-slide="0" role="tabpanel" aria-label="Foto del producto"><img src="../assets/images/dopamine-gallery.webp" alt="Dopamine Patch, paquete de 30 parches" width="1000" height="1000" fetchpriority="high" decoding="async"></div><div class="slide" data-slide="1" role="tabpanel" aria-label="Beneficios" hidden=""><div class="slide-html"><h2>Lo que vas a notar</h2><ul class="tick-list"><li>Formulado para acompañar tu bienestar diario</li><li>Con vitamina C, que contribuye al funcionamiento psicológico normal</li><li>Pensado para tus días de mucha demanda</li><li>Se aplica sobre la piel, sin pastillas</li></ul></div></div><div class="slide" data-slide="2" role="tabpanel" aria-label="Ingredientes" hidden=""><div class="slide-html"><h2>Ingredientes clave</h2><ul class="ing-list"><li><b>Vitamina C</b><span>Antioxidante que contribuye al funcionamiento psicológico normal</span></li><li><b>Dopamina</b><span>Neurotransmisor presente de forma natural en el cuerpo</span></li><li><b>Extractos Herbales</b><span>Mezcla de extractos de origen vegetal</span></li></ul></div></div><div class="slide" data-slide="3" role="tabpanel" aria-label="Cómo usar" hidden=""><div class="slide-html"><h2>Así se usa</h2><ol class="num-list"><li><i>1</i><div><b>Elegí tu fórmula</b><span>Seleccioná según lo que necesitás: enfoque, energía, metabolismo, mood o calma.</span></div></li><li><i>2</i><div><b>Pegalo en tu piel</b><span>Aplicá en zona limpia y seca (brazo, hombro o espalda). Cómodo y discreto.</span></div></li><li><i>3</i><div><b>Disfrutá tu rutina</b><span>Los ingredientes se liberan de forma gradual durante el día. Sin pastillas.</span></div></li></ol></div></div><div class="slide" data-slide="4" role="tabpanel" aria-label="▶ Video" hidden=""><a class="slide-video" href="#videos"><img src="../assets/images/vid1-poster.webp" alt="" width="360" height="640" loading="lazy"><span class="play" aria-hidden="true">▶</span><b>Mirá cómo se aplica</b></a></div><div class="slide" data-slide="5" role="tabpanel" aria-label="Qué recibís" hidden=""><div class="slide-html"><h2>Qué recibís</h2><div class="big-facts"><div><b>30</b>parches por paquete</div><div><b>1</b>parche al día</div><div><b>1 mes</b>de rutina</div></div><p class="slide-note">Envío a todo Costa Rica en 2 a 5 días hábiles.</p></div></div></div>
+  <div class="gal-main"><div class="slides"><div class="slide on" data-slide="0" role="tabpanel" aria-label="Foto del producto"><img src="../assets/images/dopamine-gallery.webp" alt="Dopamine Patch, paquete de 30 parches" width="1000" height="1000" fetchpriority="high" decoding="async"></div><div class="slide" data-slide="1" role="tabpanel" aria-label="En color" hidden=""><img src="../assets/images/dopamine-studio-gallery.webp" alt="Dopamine Patch sobre fondo de color" width="1000" height="1000" loading="lazy" decoding="async"></div><div class="slide" data-slide="2" role="tabpanel" aria-label="¿Qué son?" hidden=""><img src="../assets/images/dopamine-info.webp" alt="Qué son los parches de bienestar: capa superior, adhesivo suave, vitaminas y extractos de Dopamine Patch" width="1000" height="1000" loading="lazy" decoding="async"></div><div class="slide" data-slide="3" role="tabpanel" aria-label="Beneficios" hidden=""><div class="slide-html"><h2>Lo que vas a notar</h2><ul class="tick-list"><li>Formulado para acompañar tu bienestar diario</li><li>Con vitamina C, que contribuye al funcionamiento psicológico normal</li><li>Pensado para tus días de mucha demanda</li><li>Se aplica sobre la piel, sin pastillas</li></ul></div></div><div class="slide" data-slide="4" role="tabpanel" aria-label="Ingredientes" hidden=""><div class="slide-html"><h2>Ingredientes clave</h2><ul class="ing-list"><li><b>Vitamina C</b><span>Antioxidante que contribuye al funcionamiento psicológico normal</span></li><li><b>Dopamina</b><span>Neurotransmisor presente de forma natural en el cuerpo</span></li><li><b>Extractos Herbales</b><span>Mezcla de extractos de origen vegetal</span></li></ul></div></div><div class="slide" data-slide="5" role="tabpanel" aria-label="Cómo usar" hidden=""><div class="slide-html"><h2>Así se usa</h2><ol class="num-list"><li><i>1</i><div><b>Elegí tu fórmula</b><span>Seleccioná según lo que necesitás: enfoque, energía, metabolismo, mood o calma.</span></div></li><li><i>2</i><div><b>Pegalo en tu piel</b><span>Aplicá en zona limpia y seca (brazo, hombro o espalda). Cómodo y discreto.</span></div></li><li><i>3</i><div><b>Disfrutá tu rutina</b><span>Los ingredientes se liberan de forma gradual durante el día. Sin pastillas.</span></div></li></ol></div></div><div class="slide" data-slide="6" role="tabpanel" aria-label="▶ Video" hidden=""><a class="slide-video" href="#videos"><img src="../assets/images/vid1-poster.webp" alt="" width="360" height="640" loading="lazy"><span class="play" aria-hidden="true">▶</span><b>Mirá cómo se aplica</b></a></div><div class="slide" data-slide="7" role="tabpanel" aria-label="Qué recibís" hidden=""><div class="slide-html"><h2>Qué recibís</h2><div class="big-facts"><div><b>30</b>parches por paquete</div><div><b>1</b>parche al día</div><div><b>1 mes</b>de rutina</div></div><p class="slide-note">Envío a todo Costa Rica en 2 a 5 días hábiles.</p></div></div></div>
     <button class="gal-nav prev" type="button" aria-label="Anterior" data-gal-prev="">‹</button><button class="gal-nav next" type="button" aria-label="Siguiente" data-gal-next="">›</button>
   </div>
-  <div class="thumbs" role="tablist" aria-label="Galería"><button type="button" class="th on" data-thumb="0" role="tab" aria-selected="true" aria-label="Foto del producto" tabindex="0"><img src="../assets/images/dopamine-thumb.webp" alt="" width="76" height="76"></button><button type="button" class="th" data-thumb="1" role="tab" aria-selected="false" aria-label="Beneficios" tabindex="-1">Beneficios</button><button type="button" class="th" data-thumb="2" role="tab" aria-selected="false" aria-label="Ingredientes" tabindex="-1">Ingredientes</button><button type="button" class="th" data-thumb="3" role="tab" aria-selected="false" aria-label="Cómo usar" tabindex="-1">Cómo usar</button><button type="button" class="th" data-thumb="4" role="tab" aria-selected="false" aria-label="▶ Video" tabindex="-1">▶ Video</button><button type="button" class="th" data-thumb="5" role="tab" aria-selected="false" aria-label="Qué recibís" tabindex="-1">Qué recibís</button></div>
+  <div class="thumbs" role="tablist" aria-label="Galería"><button type="button" class="th on" data-thumb="0" role="tab" aria-selected="true" aria-label="Foto del producto" tabindex="0"><img src="../assets/images/dopamine-thumb.webp" alt="" width="76" height="76" loading="lazy"></button><button type="button" class="th" data-thumb="1" role="tab" aria-selected="false" aria-label="En color" tabindex="-1"><img src="../assets/images/dopamine-studio-thumb.webp" alt="" width="76" height="76" loading="lazy"></button><button type="button" class="th" data-thumb="2" role="tab" aria-selected="false" aria-label="¿Qué son?" tabindex="-1"><img src="../assets/images/dopamine-info-thumb.webp" alt="" width="76" height="76" loading="lazy"></button><button type="button" class="th" data-thumb="3" role="tab" aria-selected="false" aria-label="Beneficios" tabindex="-1">Beneficios</button><button type="button" class="th" data-thumb="4" role="tab" aria-selected="false" aria-label="Ingredientes" tabindex="-1">Ingredientes</button><button type="button" class="th" data-thumb="5" role="tab" aria-selected="false" aria-label="Cómo usar" tabindex="-1">Cómo usar</button><button type="button" class="th" data-thumb="6" role="tab" aria-selected="false" aria-label="▶ Video" tabindex="-1">▶ Video</button><button type="button" class="th" data-thumb="7" role="tab" aria-selected="false" aria-label="Qué recibís" tabindex="-1">Qué recibís</button></div>
 </div>
     <div class="pdp-buy">
       <h1>Dopamine Patch</h1>
@@ -643,7 +690,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   <div class="section-head"><span class="eyebrow">Seguí explorando</span><h2>Combinalo y ahorrá</h2></div>
   <div class="grid">
 <article class="card is-soldout" data-product="combo-mood">
-  <div class="card-media"><span class="tag">Agotado</span><img src="../assets/images/dopamine-card.webp" alt="Combo Mood &amp; Calma" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><span class="tag">Agotado</span><img src="../assets/images/combo-mood-card.webp" alt="Combo Mood &amp; Calma" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">Combo Mood &amp; Calma</a></h3>
     <div class="combo-chips" aria-hidden="true"><img src="../assets/images/dopamine-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"><img src="../assets/images/stress-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"></div>
@@ -655,7 +702,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   </div>
 </article>
 <article class="card" data-product="glp1">
-  <div class="card-media"><span class="tag">Nuevo</span><img src="../assets/images/glp1-card.webp" alt="GLP-1 Patch" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><span class="tag">Nuevo</span><img src="../assets/images/glp1-studio-card.webp" alt="GLP-1 Patch" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">GLP-1 Patch</a></h3>
     
@@ -667,7 +714,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   </div>
 </article>
 <article class="card" data-product="focus">
-  <div class="card-media"><span class="tag">Popular</span><img src="../assets/images/focus-card.webp" alt="Focus Patch" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><span class="tag">Popular</span><img src="../assets/images/focus-studio-card.webp" alt="Focus Patch" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">Focus Patch</a></h3>
     

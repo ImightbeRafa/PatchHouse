@@ -3,7 +3,7 @@
  * lazy vertical videos, tracking helpers.
  */
 import { cart, catalog } from './lib/store.js';
-import { $, $$, formatCRC, lineHtml, bindLineControls, toast, track, orderContents } from './lib/ui.js';
+import { $, $$, formatCRC, lineHtml, bindLineControls, toast, track, orderContents, esc } from './lib/ui.js';
 import { SHIPPING_COST } from '../../shared/catalog.js';
 
 /* ---------- mobile menu ---------- */
@@ -49,7 +49,7 @@ function renderDrawer() {
     foot.hidden = true;
     return;
   }
-  body.innerHTML = s.items.map((l) => lineHtml(l, catalog.products[l.key], { compact: true })).join('');
+  body.innerHTML = s.items.map((l) => lineHtml(l, catalog.products[l.key], { compact: true })).join('') + addOnsHtml(s.items);
   foot.hidden = false;
   foot.innerHTML = `
     ${s.savings ? `<div class="drawer-total" style="font-size:14px;font-weight:700;color:var(--ok)"><span>Ahorrás</span><span>${formatCRC(s.savings)}</span></div>` : ''}
@@ -58,12 +58,29 @@ function renderDrawer() {
     <a class="btn btn-cta btn-lg btn-block" href="/checkout/">Finalizar compra</a>`;
 }
 
+/** "Completá tu rutina": patches not yet covered by the cart, then combos, max 3. */
+function addOnsHtml(items) {
+  const inCart = new Set(items.map((i) => i.key));
+  const covered = new Set(items.flatMap((i) => catalog.products[i.key]?.includes || []));
+  const patches = catalog.patches().filter((p) => !covered.has(p.key) && !catalog.isSoldOut(p.key));
+  const combos = catalog.combos().filter((c) => !inCart.has(c.key) && !catalog.isSoldOut(c.key) && c.includes.some((k) => covered.has(k)));
+  const picks = [...patches.slice(0, 2), ...combos.slice(0, 1), ...patches.slice(2)].slice(0, 3);
+  if (!picks.length) return '';
+  return `<section class="addons" aria-label="Agregá a tu pedido"><h3>Completá tu rutina</h3>${picks.map((p) => `
+    <div class="addon">
+      <img src="/images/${esc(p.cardImage || p.image)}-thumb.webp" alt="" width="56" height="56" loading="lazy">
+      <div class="addon-main"><b>${esc(p.name)}</b><span>${p.kind === 'combo' ? `${formatCRC(p.price)} <s>${formatCRC(p.compareAt)}</s>` : formatCRC(p.price)}</span></div>
+      <button class="btn btn-outline btn-sm" type="button" data-add="${esc(p.key)}" data-qty="1" aria-label="Agregar ${esc(p.name)} al carrito">+ Agregar</button>
+    </div>`).join('')}</section>`;
+}
+
 function focusables() {
   return $$('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])', drawer).filter((el) => !el.hidden && el.offsetParent !== null);
 }
 
 export function openCart() {
   if (!drawer) return;
+  if (drawer.classList.contains('open')) { renderDrawer(); return; } // e.g. an add-on added from inside the drawer
   lastFocus = document.activeElement;
   renderDrawer();
   drawer.classList.add('open');

@@ -1,0 +1,88 @@
+/**
+ * Cuts a product pack out of its studio photo (plain / gradient background) and returns a PNG with alpha.
+ * Edge-aware flood fill from the crop border: a pixel is background if it is close to its already-filled
+ * neighbour (smooth gradient) and not too far from the border colour. The mask is then feathered.
+ */
+import sharp from 'sharp';
+
+/** Pack bounds inside each original photo, as fractions [left, top, right, bottom] (measured by hand). */
+export const PACK_BOUNDS = {
+  focus: ['focus.jpg', 0.27, 0.245, 0.73, 0.695],
+  nad: ['nad.jpg', 0.27, 0.245, 0.73, 0.695],
+  dopamine: ['dopamine.jpg', 0.27, 0.245, 0.73, 0.695],
+  stress: ['stressdown.jpg', 0.27, 0.245, 0.73, 0.695],
+  energy: ['energy.jpg', 0.26, 0.21, 0.75, 0.85],
+  glp1: ['glp1.jpg', 0.24, 0.13, 0.76, 0.86]
+};
+
+export async function cutout(srcDir, key, height = 900) {
+  const [file, l, t, r, b] = PACK_BOUNDS[key];
+  const meta = await sharp(`${srcDir}/${file}`).metadata();
+  const crop = await sharp(`${srcDir}/${file}`).rotate()
+    .extract({ left: Math.round(l * meta.width), top: Math.round(t * meta.height), width: Math.round((r - l) * meta.width), height: Math.round((b - t) * meta.height) })
+    .resize({ height })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const { data, info } = crop;
+  const W = info.width;
+  const H = info.height;
+  const bg = new Uint8Array(W * H); // 1 = background
+  const px = (i) => [data[i * 3], data[i * 3 + 1], data[i * 3 + 2]];
+  const dist = (a, c) => Math.abs(a[0] - c[0]) + Math.abs(a[1] - c[1]) + Math.abs(a[2] - c[2]);
+
+  const queue = new Int32Array(W * H);
+  let qh = 0;
+  let qt = 0;
+  const seed = (i) => { if (!bg[i]) { bg[i] = 1; queue[qt++] = i; } };
+  for (let x = 0; x < W; x++) { seed(x); seed((H - 1) * W + x); }
+  for (let y = 0; y < H; y++) { seed(y * W); seed(y * W + W - 1); }
+
+  const STEP = 3;   // max change between neighbouring background pixels (low: stop at the pack's soft edge)
+  while (qh < qt) {
+    const i = queue[qh++];
+    const x = i % W;
+    const y = (i - x) / W;
+    const c = px(i);
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const j = ny * W + nx;
+      if (bg[j]) continue;
+      if (dist(px(j), c) <= STEP) { bg[j] = 1; queue[qt++] = j; }
+    }
+  }
+
+  // The pouches are rounded rectangles: fit one to the flood-fill result instead of trusting
+  // the noisy per-pixel edge (JPEG noise leaves ragged halos; light pouches can leak).
+  const colCov = new Float64Array(W);
+  const rowCov = new Float64Array(H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!bg[y * W + x]) { colCov[x]++; rowCov[y]++; }
+  const edges = (cov, n) => {
+    const max = Math.max(...cov);
+    let lo = 0;
+    let hi = n - 1;
+    while (lo < n && cov[lo] < max * 0.35) lo++;
+    while (hi > 0 && cov[hi] < max * 0.35) hi--;
+    return [lo, hi];
+  };
+  const [x0, x1] = edges(colCov, W);
+  const [y0, y1] = edges(rowCov, H);
+  const rw = x1 - x0;
+  const rh = y1 - y0;
+  const radius = Math.round(rw * 0.045);
+  const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><rect x="${x0 + 1}" y="${y0 + 1}" width="${rw - 2}" height="${rh - 2}" rx="${radius}" fill="#fff"/></svg>`);
+  const mask = await sharp({ create: { width: W, height: H, channels: 3, background: '#000' } })
+    .composite([{ input: svg }])
+    .blur(0.8)
+    .extractChannel(0)
+    .raw()
+    .toBuffer();
+
+  // Crop to the pack itself so callers can position it precisely.
+  const full = await sharp(data, { raw: { width: W, height: H, channels: 3 } })
+    .joinChannel(mask, { raw: { width: W, height: H, channels: 1 } })
+    .png()
+    .toBuffer();
+  return sharp(full).extract({ left: Math.max(0, x0 - 2), top: Math.max(0, y0 - 2), width: Math.min(W - x0 + 2, rw + 4), height: Math.min(H - y0 + 2, rh + 4) }).png().toBuffer();
+}

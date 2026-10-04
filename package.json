@@ -10,6 +10,8 @@
     "build": "node scripts/build-pages.js && vite build",
     "preview": "vite preview",
     "images": "node scripts/optimize-images.js",
+    "visuals": "node scripts/build-visuals.js",
+    "preview:design": "node scripts/build-preview.js",
     "test": "node --test \"tests/*.test.js\""
   },
   "keywords": ["ecommerce", "patchhouse", "parches-transdermicos", "bienestar", "costa-rica"],

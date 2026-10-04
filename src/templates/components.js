@@ -14,9 +14,7 @@ export function priceBlock(p, { unit = true } = {}) {
 export function productCard(p, cat) {
   const sold = cat.isSoldOut(p.key);
   const isCombo = p.kind === 'combo';
-  const media = isCombo
-    ? `<img src="${productImage(cat.products[p.includes[0]] || p, 'card')}" alt="${esc(p.name)}" width="520" height="520" loading="lazy" decoding="async">`
-    : `<img src="${productImage(p)}" alt="${esc(p.name)}" width="520" height="520" loading="lazy" decoding="async">`;
+  const media = `<img src="/images/${p.cardImage || p.image}-card.webp" alt="${esc(p.name)}" width="520" height="520" loading="lazy" decoding="async">`;
   const tagline = isCombo ? p.includes.map((k) => cat.products[k].short).join(' + ') : p.tagline;
   const chips = isCombo
     ? `<div class="combo-chips" aria-hidden="true">${p.includes.map((k) => `<img src="${productImage(cat.products[k], 'thumb')}" alt="" width="40" height="40" loading="lazy" decoding="async">`).join('')}</div>`
@@ -26,7 +24,7 @@ export function productCard(p, cat) {
 <article class="card${sold ? ' is-soldout' : ''}" data-product="${p.key}">
   <div class="card-media">${tag}${media}</div>
   <div class="card-body">
-    <h3><a href="${p.path}">${esc(isCombo ? p.name : p.name)}</a></h3>
+    <h3><a href="${p.path}">${esc(p.name)}</a></h3>
     ${chips}
     <p class="card-tagline">${esc(tagline)}</p>
     <div class="card-foot">

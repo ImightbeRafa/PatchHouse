@@ -9,7 +9,15 @@ export function homePage(cat) {
 
   const hero = `
 <section class="hero">
+  <div class="hero-orbs" aria-hidden="true"><i class="o1"></i><i class="o2"></i><i class="o3"></i></div>
   <div class="container hero-inner">
+    <div class="hero-visual">
+      <div class="hero-ring" aria-hidden="true"></div>
+      <img class="hero-packs" src="/images/hero-packs.webp" alt="Los seis parches PatchHouse: Focus, Stress Relief, GLP-1, Energy, Dopamine y NAD+" width="1500" height="716" fetchpriority="high" decoding="async">
+      <span class="float-chip c1"><b>30</b> parches · 1 mes</span>
+      <span class="float-chip c2">Desde <b>${formatCRC(lowest)}</b></span>
+      <span class="float-chip c3">Pagá con <b>SINPE Móvil</b></span>
+    </div>
     <div class="hero-copy">
       <span class="hero-badge">100% natural · Hecho para Costa Rica</span>
       <h1>Tu bienestar diario en un <span class="gradient-text">parche</span></h1>
@@ -18,10 +26,8 @@ export function homePage(cat) {
         <a class="btn btn-cta btn-lg" href="#tienda">Ver los parches</a>
         <a class="btn btn-ghost btn-lg" href="#combos">Combos con ahorro</a>
       </div>
-      <ul class="hero-points"><li>Paquete de 30 parches</li><li>Pagá con SINPE Móvil</li><li>Envío a todo el país</li></ul>
-    </div>
-    <div class="hero-stage" aria-label="Nuestros parches">
-      ${patches.map((p, i) => `<a class="hero-tile" href="${p.path}"><img src="${productImage(p)}" alt="${esc(p.name)}" width="520" height="520" ${i < 3 ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"><span>${esc(p.short)}</span></a>`).join('')}
+      <ul class="hero-points"><li>Envío a todo el país</li><li>SINPE Móvil o tarjeta</li><li>Atención por WhatsApp</li></ul>
+      <div class="hero-pills" aria-label="Fórmulas">${patches.map((p) => `<a href="${p.path}" style="--c:${p.accent}">${esc(p.short)}</a>`).join('')}</div>
     </div>
   </div>
 </section>`;
@@ -117,6 +123,6 @@ ${trustStrip()}
     main,
     page: 'home',
     jsonld,
-    head: '<link rel="preload" as="image" type="image/webp" href="/images/glp1-card.webp" fetchpriority="high">'
+    head: '<link rel="preload" as="image" type="image/webp" href="/images/hero-packs.webp" fetchpriority="high">'
   });
 }

@@ -11,10 +11,13 @@ function gallery(p, cat) {
   const isCombo = p.kind === 'combo';
   const members = p.includes.map((k) => cat.products[k]);
   const photo = isCombo
-    ? `<div class="slide-collage c${Math.min(members.length, 6)}">${members.map((m) => `<img src="${productImage(m, 'gallery')}" alt="${esc(m.name)}" width="1000" height="1000" decoding="async">`).join('')}</div>`
+    ? `<img src="${productImage(p, 'gallery')}" alt="${esc(p.name)}: ${esc(members.map((m) => m.name).join(', '))}" width="1000" height="1000" fetchpriority="high" decoding="async">`
     : `<img src="${productImage(p, 'gallery')}" alt="${esc(p.name)}, paquete de 30 parches" width="1000" height="1000" fetchpriority="high" decoding="async">`;
-
-  const slides = [{ label: null, html: photo }];
+  const slides = [{ label: null, thumb: productImage(p, 'thumb'), html: photo }];
+  if (!isCombo) {
+    slides.push({ label: 'En color', thumb: `/images/${p.key}-studio-thumb.webp`, html: `<img src="/images/${p.key}-studio-gallery.webp" alt="${esc(p.name)} sobre fondo de color" width="1000" height="1000" loading="lazy" decoding="async">` });
+    slides.push({ label: '¿Qué son?', thumb: `/images/${p.key}-info-thumb.webp`, html: `<img src="/images/${p.key}-info.webp" alt="Qué son los parches de bienestar: capa superior, adhesivo suave, vitaminas y extractos de ${esc(p.name)}" width="1000" height="1000" loading="lazy" decoding="async">` });
+  }
 
   if (isCombo) {
     slides.push({
@@ -32,7 +35,7 @@ function gallery(p, cat) {
   }
 
   const slideHtml = slides.map((s, i) => `<div class="slide${i === 0 ? ' on' : ''}" data-slide="${i}" role="tabpanel" aria-label="${esc(s.label || 'Foto del producto')}"${i === 0 ? '' : ' hidden'}>${s.html}</div>`).join('');
-  const thumbs = slides.map((s, i) => `<button type="button" class="th${i === 0 ? ' on' : ''}" data-thumb="${i}" role="tab" aria-selected="${i === 0}" aria-label="${esc(s.label || 'Foto del producto')}">${i === 0 ? `<img src="${productImage(isCombo ? members[0] : p, 'thumb')}" alt="" width="76" height="76">` : esc(s.label)}</button>`).join('');
+  const thumbs = slides.map((s, i) => `<button type="button" class="th${i === 0 ? ' on' : ''}" data-thumb="${i}" role="tab" aria-selected="${i === 0}" aria-label="${esc(s.label || 'Foto del producto')}">${s.thumb ? `<img src="${s.thumb}" alt="" width="76" height="76" loading="lazy">` : esc(s.label)}</button>`).join('');
 
   return `
 <div class="pdp-gallery" data-gallery>
@@ -43,6 +46,35 @@ function gallery(p, cat) {
 </div>`;
 }
 
+/** "Elegí tu opción": this product alone or a combo that includes it, with the savings visible. */
+function optionPicker(p, cat) {
+  const isCombo = p.kind === 'combo';
+  const available = cat.combos().filter((c) => !cat.isSoldOut(c.key) && c.key !== p.key);
+  const related = isCombo
+    ? available.filter((c) => c.key !== 'combo-full' && c.includes.some((k) => p.includes.includes(k)))
+    : available.filter((c) => c.key !== 'combo-full' && c.includes.includes(p.key));
+  related.sort((a, b) => (b.badge ? 1 : 0) - (a.badge ? 1 : 0) || a.includes.length - b.includes.length || b.savings - a.savings); // best seller first
+  const full = available.find((c) => c.key === 'combo-full' && (isCombo || c.includes.includes(p.key)));
+  const options = [p, ...related.slice(0, full ? 2 : 3), ...(full ? [full] : [])];
+  if (options.length < 2) return '';
+
+  const row = (o, i) => {
+    const members = o.includes.map((k) => cat.products[k].short).join(' + ');
+    const title = i === 0 ? (isCombo ? o.name : `Solo ${o.name}`) : o.name;
+    const sub = i === 0 && !isCombo ? '1 paquete · 30 parches' : members;
+    const tag = o.key === 'combo-full' ? 'MEJOR AHORRO' : (o.badge ? o.badge.toUpperCase() : '');
+    return `<label class="opt${i === 0 ? ' on' : ''}">
+      ${tag && i > 0 ? `<span class="opt-tag">${esc(tag)}</span>` : ''}
+      <input type="radio" name="opt" value="${o.key}" data-name="${esc(o.short)}"${i === 0 ? ' checked' : ''}>
+      <span class="radio" aria-hidden="true"></span>
+      <img src="/images/${o.cardImage || o.image}-thumb.webp" alt="" width="52" height="52" loading="lazy">
+      <span class="opt-main"><b>${esc(title)}</b><span>${esc(sub)}</span></span>
+      <span class="opt-price"><b>${formatCRC(o.price)}</b>${o.savings ? `<s>${formatCRC(o.compareAt)}</s><em>Ahorrás ${formatCRC(o.savings)}</em>` : ''}</span>
+    </label>`;
+  };
+  return `<fieldset class="options" data-options><legend class="lbl">${isCombo ? 'Elegí tu combo' : 'Elegí tu opción · ahorrá con un combo'}</legend>${options.map(row).join('')}</fieldset>`;
+}
+
 function comboQty() {
   return `<div class="qty-row" id="pack"><span class="lbl">Cantidad</span><div class="qty" data-qty-ctl><button type="button" aria-label="Reducir cantidad" data-qty-minus>−</button><output aria-live="polite" data-qty-out>1</output><button type="button" aria-label="Aumentar cantidad" data-qty-plus>+</button></div></div>`;
 }
@@ -51,7 +83,7 @@ export function productPage(p, cat) {
   const isCombo = p.kind === 'combo';
   const sold = cat.isSoldOut(p.key);
   const members = p.includes.map((k) => cat.products[k]);
-  const lead = isCombo ? members[0] : p;
+  const lead = p; // combos have their own composed image
   const summary = reviewSummary(p.key);
   const reviews = REVIEWS[p.key] || [];
   const startPrice = p.price;
@@ -65,7 +97,8 @@ export function productPage(p, cat) {
 
   const buy = sold
     ? `<div class="soldout-box"><b>Agotado por ahora</b><p>${esc(cat.config.soldOutMessage)}</p><a class="btn btn-wa btn-block" href="https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(`Hola PatchHouse, avísenme cuando vuelva ${p.name}`)}" target="_blank" rel="noopener">Avisarme por WhatsApp</a></div>`
-    : `${comboQty()}
+    : `${optionPicker(p, cat)}
+      ${comboQty()}
       <div class="buy-actions">
         <button class="btn btn-cta btn-lg btn-block" type="button" id="atc" data-add="${p.key}">Agregar al carrito · <span data-atc-price>${formatCRC(startPrice)}</span></button>
         <button class="btn btn-dark btn-block" type="button" data-buy-now="${p.key}">Comprar ahora</button>
@@ -190,6 +223,6 @@ ${reviewsHtml}
     page: 'pdp',
     css: ['/src/styles/pdp.css'],
     bodyClass: sold ? '' : 'has-sticky-bar',
-    head: isCombo ? '' : `<link rel="preload" as="image" type="image/webp" href="${productImage(p, 'gallery')}" fetchpriority="high">`
+    head: `<link rel="preload" as="image" type="image/webp" href="${productImage(p, 'gallery')}" fetchpriority="high">`
   });
 }

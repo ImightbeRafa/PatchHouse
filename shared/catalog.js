@@ -47,7 +47,7 @@ const COMMON_USAGE = [
  */
 export const PATCHES = {
   focus: {
-    key: 'focus', slug: 'focus-patch', name: 'Focus Patch', short: 'Focus', image: 'focus', accent: '#e67e22',
+    key: 'focus', slug: 'focus-patch', name: 'Focus Patch', short: 'Focus', image: 'focus', accent: '#7b3f98',
     badge: 'Popular',
     tagline: 'Apoyo para tu enfoque y claridad mental',
     result: 'Acompañá tus horas de estudio, trabajo o creatividad con una fórmula pensada para apoyar tu concentración.',
@@ -70,7 +70,7 @@ export const PATCHES = {
     ]
   },
   nad: {
-    key: 'nad', slug: 'nad-patch', name: 'NAD+ Patch', short: 'NAD+', image: 'nad', accent: '#8e44ad',
+    key: 'nad', slug: 'nad-patch', name: 'NAD+ Patch', short: 'NAD+', image: 'nad', accent: '#6aae3d',
     badge: '',
     tagline: 'Apoyo para tu energía y bienestar celular',
     result: 'Una rutina diaria de un parche para acompañar tu vitalidad.',
@@ -92,7 +92,7 @@ export const PATCHES = {
     ]
   },
   energy: {
-    key: 'energy', slug: 'energy-patch', name: 'Energy Patch', short: 'Energy', image: 'energy', accent: '#f0a202',
+    key: 'energy', slug: 'energy-patch', name: 'Energy Patch', short: 'Energy', image: 'energy', accent: '#ecc914',
     badge: 'Nuevo',
     tagline: 'Energía y enfoque con liberación gradual',
     result: 'Un impulso de energía para trabajar, estudiar o entrenar, con liberación gradual durante el día.',
@@ -116,7 +116,7 @@ export const PATCHES = {
     note: 'Contiene cafeína. No recomendado para menores de edad, embarazo ni lactancia.'
   },
   glp1: {
-    key: 'glp1', slug: 'glp1-patch', name: 'GLP-1 Patch', short: 'GLP-1', image: 'glp1', accent: '#d36d86',
+    key: 'glp1', slug: 'glp1-patch', name: 'GLP-1 Patch', short: 'GLP-1', image: 'glp1', accent: '#e58a9c',
     badge: 'Nuevo',
     tagline: 'Apoyo para una rutina de alimentación saludable',
     result: 'Un parche diario para acompañar tus hábitos de alimentación y bienestar de forma práctica y discreta.',
@@ -140,7 +140,7 @@ export const PATCHES = {
     note: '"GLP-1" es el nombre del producto. No es un medicamento y no reemplaza una alimentación equilibrada, la actividad física ni el tratamiento médico.'
   },
   dopamine: {
-    key: 'dopamine', slug: 'dopamine-patch', name: 'Dopamine Patch', short: 'Dopamine', image: 'dopamine', accent: '#27ae60',
+    key: 'dopamine', slug: 'dopamine-patch', name: 'Dopamine Patch', short: 'Dopamine', image: 'dopamine', accent: '#e9c31d',
     badge: '',
     tagline: 'Vitaminas y extractos para tu bienestar diario',
     result: 'Acompañá tu día con una fórmula pensada para tu bienestar y tu rutina.',
@@ -162,7 +162,7 @@ export const PATCHES = {
     ]
   },
   stress: {
-    key: 'stress', slug: 'stress-relief-patch', name: 'Stress Relief Patch', short: 'Stress Relief', image: 'stress', accent: '#2980b9',
+    key: 'stress', slug: 'stress-relief-patch', name: 'Stress Relief Patch', short: 'Stress Relief', image: 'stress', accent: '#18917e',
     badge: '',
     tagline: 'Apoyo para tus días de mucha carga',
     result: 'Un parche diario pensado para acompañarte en los días de mucha carga.',
@@ -231,13 +231,14 @@ export function buildCatalog(config = {}) {
       price: SINGLE_PRICE,
       compareAt: null,
       includes: [key],
+      cardImage: `${key}-studio`,
       unitLabel: '30 parches · 1 mes',
       path: `/producto/${p.slug}/`
     };
   }
 
   for (const [key, c] of Object.entries(STATIC_COMBOS)) {
-    products[key] = { ...c, key, kind: 'combo', image: c.includes[0], compareAt: c.includes.length * SINGLE_PRICE, unitLabel: `${c.includes.length} paquetes de 30 parches`, path: `/producto/${c.slug}/` };
+    products[key] = { ...c, key, kind: 'combo', image: key, cardImage: key, compareAt: c.includes.length * SINGLE_PRICE, unitLabel: `${c.includes.length} paquetes de 30 parches`, path: `/producto/${c.slug}/` };
   }
 
   const fhKeys = PATCH_ORDER.filter((k) => !cfg.soldOut.includes(k) && !cfg.comboExcluded.includes(k));
@@ -246,7 +247,7 @@ export function buildCatalog(config = {}) {
     products['combo-full'] = {
       key: 'combo-full', slug: 'combo-full-house', kind: 'combo',
       name: 'Combo Full House', short: 'Full House', subtitle: `${fhKeys.length} paquetes`,
-      includes: fhKeys, image: fhKeys[0], badge: 'Mejor ahorro',
+      includes: fhKeys, image: `combo-full-${fhKeys.join('-')}`, cardImage: `combo-full-${fhKeys.join('-')}`, badge: 'Mejor ahorro',
       price: cfg.fullHousePrices[fhKeys.length] || FULL_HOUSE_PRICE_BY_COUNT[fhKeys.length] || compareAt,
       compareAt, unitLabel: `${fhKeys.length} paquetes de 30 parches`, path: '/producto/combo-full-house/'
     };

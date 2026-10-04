@@ -19,7 +19,7 @@
   <link rel="icon" type="image/png" href="../assets/images/logo.png">
   
   <link rel="dns-prefetch" href="https://connect.facebook.net">
-  <link rel="preload" as="image" type="image/webp" href="../assets/images/glp1-card.webp" fetchpriority="high">
+  <link rel="preload" as="image" type="image/webp" href="../assets/images/hero-packs.webp" fetchpriority="high">
   <style>/* ==========================================================================
    PatchHouse.CR – shared design system (loaded on every page)
    Mobile-first. Brand tokens carried over from the original site.
@@ -193,27 +193,39 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .primary-nav a:hover, .primary-nav a[aria-current='page'] { color: var(--ink); }
 }
 
-/* ---------- hero (home) ---------- */
-.hero { position: relative; overflow: hidden; color: #fff; background: linear-gradient(160deg, #1a1a2e 0%, #2d3250 38%, #424769 68%, #6d8f7f 100%); padding-block: 40px 48px; }
-.hero::after { content: ''; position: absolute; width: 520px; height: 520px; right: -160px; top: -180px; border-radius: 50%; background: rgba(184, 169, 212, .14); filter: blur(70px); pointer-events: none; }
-.hero-inner { position: relative; z-index: 1; display: grid; gap: 32px; align-items: center; }
-.hero-badge { display: inline-block; justify-self: start; padding: 7px 16px; border-radius: var(--radius-full); border: 1px solid rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .08); font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .9); }
-.hero h1 { color: #fff; font-size: clamp(34px, 7.5vw, 62px); font-weight: 800; line-height: 1.05; letter-spacing: -.025em; }
-.gradient-text { background: linear-gradient(90deg, #ff6b5a, #f0a04b, #f1c40f, #4cd08a, #4aa6e0, #b57edc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+/* ---------- hero (home): products left, copy right ---------- */
+.hero { position: relative; overflow: hidden; color: #fff; background: radial-gradient(120% 90% at 15% 20%, #3b3f6b 0%, #23253f 45%, #161729 100%); padding-block: 28px 56px; isolation: isolate; }
+.hero::before { content: ''; position: absolute; inset: 0; z-index: -1; background-image: radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px); background-size: 22px 22px; -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 85%); mask-image: linear-gradient(180deg, #000 0%, transparent 85%); }
+.hero-orbs i { position: absolute; z-index: -1; border-radius: 50%; filter: blur(70px); opacity: .55; }
+.hero-orbs .o1 { width: 420px; height: 420px; left: -120px; top: 10%; background: #8e44ad; }
+.hero-orbs .o2 { width: 360px; height: 360px; left: 30%; bottom: -160px; background: #e67e22; opacity: .35; }
+.hero-orbs .o3 { width: 380px; height: 380px; right: -140px; top: -120px; background: #27ae60; opacity: .35; }
+.hero-inner { position: relative; display: grid; gap: 28px; align-items: center; }
+.hero-visual { position: relative; padding-top: 24px; }
+.hero-ring { position: absolute; inset: 6% 8% 0; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 62%); }
+.hero-packs { position: relative; width: 100%; height: auto; filter: drop-shadow(0 30px 40px rgba(0,0,0,.35)); animation: float 7s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-10px); } }
+.float-chip { position: absolute; z-index: 2; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,.95); color: var(--dark); font-size: 13px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.25); white-space: nowrap; animation: float 6s ease-in-out infinite; }
+.float-chip b { font-weight: 800; }
+.float-chip.c1 { left: 2%; top: 0; }
+.float-chip.c2 { right: 3%; top: 8%; animation-delay: -2s; background: var(--cta); color: #fff; }
+.float-chip.c3 { left: 32%; bottom: -10px; animation-delay: -4s; }
 .hero-copy { display: grid; gap: 18px; }
-.hero-sub { font-size: 17px; line-height: 1.6; color: rgba(255, 255, 255, .78); max-width: 46ch; }
+.hero-badge { display: inline-block; justify-self: start; padding: 7px 16px; border-radius: var(--radius-full); border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.08); font-size: 13px; font-weight: 600; color: rgba(255,255,255,.92); }
+.hero h1 { color: #fff; font-size: clamp(36px, 7.5vw, 64px); font-weight: 800; line-height: 1.02; letter-spacing: -.03em; }
+.gradient-text { background: linear-gradient(90deg, #ff6b5a, #f0a04b, #f1c40f, #4cd08a, #4aa6e0, #b57edc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-sub { font-size: 17px; line-height: 1.6; color: rgba(255,255,255,.78); max-width: 46ch; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
-.hero-points { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: rgba(255, 255, 255, .85); font-weight: 600; }
+.hero-points { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: rgba(255,255,255,.85); font-weight: 600; }
 .hero-points li::before { content: '✓'; color: #7be0a6; margin-right: 6px; font-weight: 800; }
-.hero-stage { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 460px; }
-.hero-tile { position: relative; border-radius: var(--radius); overflow: hidden; background: #fff; aspect-ratio: 1; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); transition: transform .25s var(--ease); }
-.hero-tile:hover { transform: translateY(-3px); }
-.hero-tile img { width: 100%; height: 100%; object-fit: cover; }
-.hero-tile span { position: absolute; left: 6px; bottom: 6px; padding: 3px 8px; border-radius: 6px; background: rgba(255, 255, 255, .92); color: var(--dark); font-size: 11px; font-weight: 800; }
+.hero-pills { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.12); }
+.hero-pills a { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); font-size: 13px; font-weight: 600; color: #fff; transition: background .2s; }
+.hero-pills a::before { content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px rgba(255,255,255,.12); }
+.hero-pills a:hover { background: rgba(255,255,255,.16); }
 @media (min-width: 900px) {
-  .hero { padding-block: 72px 88px; }
-  .hero-inner { grid-template-columns: 1.05fr 1fr; gap: 64px; }
-  .hero-stage { justify-self: end; gap: 14px; }
+  .hero { padding-block: 64px 80px; }
+  .hero-inner { grid-template-columns: 1.12fr 1fr; gap: 48px; }
+  .float-chip { font-size: 14px; padding: 10px 16px; }
 }
 
 /* ---------- trust strip ---------- */
@@ -232,7 +244,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 .card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; transition: box-shadow .25s var(--ease), transform .25s var(--ease), border-color .25s; }
 .card:hover { box-shadow: var(--shadow); transform: translateY(-2px); border-color: var(--primary-soft); }
-.card-media { position: relative; display: block; aspect-ratio: 1; background: #fff; }
+.card-media { position: relative; display: block; aspect-ratio: 1; background: #fff; overflow: hidden; }
+.card-media img { transition: transform .5s var(--ease); }
+.card:hover .card-media img { transform: scale(1.04); }
 .card-media img { width: 100%; height: 100%; object-fit: cover; }
 .tag { position: absolute; left: 10px; top: 10px; z-index: 1; padding: 4px 10px; border-radius: var(--radius-full); background: var(--dark); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .03em; }
 .tag.save { background: var(--ok); }
@@ -366,6 +380,18 @@ body.has-sticky .wa-float { bottom: 84px; }
 .qty button:disabled { opacity: .35; cursor: not-allowed; }
 .qty output { min-width: 28px; text-align: center; font-weight: 800; color: var(--ink); }
 
+/* ---------- cart add-ons ---------- */
+.addons { margin: 8px 0 16px; padding: 14px; border-radius: var(--radius); background: var(--primary-faint); border: 1px solid var(--primary-soft); }
+.addons h3 { font-size: 14px; letter-spacing: .02em; margin-bottom: 8px; }
+.addon { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(58,143,106,.15); }
+.addon:first-of-type { border-top: 0; }
+.addon img { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: #fff; }
+.addon-main { display: grid; gap: 1px; min-width: 0; }
+.addon-main b { font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.addon-main span { font-size: 13px; font-weight: 700; color: var(--ink); }
+.addon-main s { font-weight: 500; color: var(--muted); margin-left: 4px; }
+.addon .btn { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+
 /* ---------- toast ---------- */
 .toast-region { position: fixed; left: 0; right: 0; bottom: 20px; z-index: 1200; display: grid; justify-items: center; gap: 8px; padding-inline: 16px; pointer-events: none; }
 .toast { pointer-events: auto; max-width: 420px; padding: 12px 18px; border-radius: var(--radius); background: var(--dark); color: #fff; font-size: 14px; font-weight: 600; box-shadow: var(--shadow-lg); animation: toast-in .25s var(--ease); display: flex; gap: 12px; align-items: center; }
@@ -412,7 +438,15 @@ body.has-sticky .wa-float { bottom: 84px; }
   <main id="main">
 
 <section class="hero">
+  <div class="hero-orbs" aria-hidden="true"><i class="o1"></i><i class="o2"></i><i class="o3"></i></div>
   <div class="container hero-inner">
+    <div class="hero-visual">
+      <div class="hero-ring" aria-hidden="true"></div>
+      <img class="hero-packs" src="../assets/images/hero-packs.webp" alt="Los seis parches PatchHouse: Focus, Stress Relief, GLP-1, Energy, Dopamine y NAD+" width="1500" height="716" fetchpriority="high" decoding="async">
+      <span class="float-chip c1"><b>30</b> parches · 1 mes</span>
+      <span class="float-chip c2">Desde <b>₡9.900</b></span>
+      <span class="float-chip c3">Pagá con <b>SINPE Móvil</b></span>
+    </div>
     <div class="hero-copy">
       <span class="hero-badge">100% natural · Hecho para Costa Rica</span>
       <h1>Tu bienestar diario en un <span class="gradient-text">parche</span></h1>
@@ -421,10 +455,8 @@ body.has-sticky .wa-float { bottom: 84px; }
         <a class="btn btn-cta btn-lg" href="#tienda">Ver los parches</a>
         <a class="btn btn-ghost btn-lg" href="#combos">Combos con ahorro</a>
       </div>
-      <ul class="hero-points"><li>Paquete de 30 parches</li><li>Pagá con SINPE Móvil</li><li>Envío a todo el país</li></ul>
-    </div>
-    <div class="hero-stage" aria-label="Nuestros parches">
-      <a class="hero-tile" href="producto-mobile.html"><img src="../assets/images/glp1-card.webp" alt="GLP-1 Patch" width="520" height="520" fetchpriority="high" decoding="async"><span>GLP-1</span></a><a class="hero-tile" href="producto-mobile.html"><img src="../assets/images/focus-card.webp" alt="Focus Patch" width="520" height="520" fetchpriority="high" decoding="async"><span>Focus</span></a><a class="hero-tile" href="producto-mobile.html"><img src="../assets/images/energy-card.webp" alt="Energy Patch" width="520" height="520" fetchpriority="high" decoding="async"><span>Energy</span></a><a class="hero-tile" href="producto-mobile.html"><img src="../assets/images/stress-card.webp" alt="Stress Relief Patch" width="520" height="520" loading="lazy" decoding="async"><span>Stress Relief</span></a><a class="hero-tile" href="agotado-mobile.html"><img src="../assets/images/dopamine-card.webp" alt="Dopamine Patch" width="520" height="520" loading="lazy" decoding="async"><span>Dopamine</span></a><a class="hero-tile" href="producto-mobile.html"><img src="../assets/images/nad-card.webp" alt="NAD+ Patch" width="520" height="520" loading="lazy" decoding="async"><span>NAD+</span></a>
+      <ul class="hero-points"><li>Envío a todo el país</li><li>SINPE Móvil o tarjeta</li><li>Atención por WhatsApp</li></ul>
+      <div class="hero-pills" aria-label="Fórmulas"><a href="producto-mobile.html" style="--c:#e58a9c">GLP-1</a><a href="producto-mobile.html" style="--c:#7b3f98">Focus</a><a href="producto-mobile.html" style="--c:#ecc914">Energy</a><a href="producto-mobile.html" style="--c:#18917e">Stress Relief</a><a href="agotado-mobile.html" style="--c:#e9c31d">Dopamine</a><a href="producto-mobile.html" style="--c:#6aae3d">NAD+</a></div>
     </div>
   </div>
 </section>
@@ -435,7 +467,7 @@ body.has-sticky .wa-float { bottom: 84px; }
     <div class="section-head"><span class="eyebrow">Nuestros parches</span><h2>Una fórmula para cada momento</h2><p>Cada paquete trae 30 parches: un mes completo de rutina desde ₡9.900.</p></div>
     <div class="grid">
 <article class="card" data-product="glp1">
-  <div class="card-media"><span class="tag">Nuevo</span><img src="../assets/images/glp1-card.webp" alt="GLP-1 Patch" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><span class="tag">Nuevo</span><img src="../assets/images/glp1-studio-card.webp" alt="GLP-1 Patch" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">GLP-1 Patch</a></h3>
     
@@ -447,7 +479,7 @@ body.has-sticky .wa-float { bottom: 84px; }
   </div>
 </article>
 <article class="card" data-product="focus">
-  <div class="card-media"><span class="tag">Popular</span><img src="../assets/images/focus-card.webp" alt="Focus Patch" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><span class="tag">Popular</span><img src="../assets/images/focus-studio-card.webp" alt="Focus Patch" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">Focus Patch</a></h3>
     
@@ -459,7 +491,7 @@ body.has-sticky .wa-float { bottom: 84px; }
   </div>
 </article>
 <article class="card" data-product="energy">
-  <div class="card-media"><span class="tag">Nuevo</span><img src="../assets/images/energy-card.webp" alt="Energy Patch" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><span class="tag">Nuevo</span><img src="../assets/images/energy-studio-card.webp" alt="Energy Patch" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">Energy Patch</a></h3>
     
@@ -471,7 +503,7 @@ body.has-sticky .wa-float { bottom: 84px; }
   </div>
 </article>
 <article class="card" data-product="stress">
-  <div class="card-media"><img src="../assets/images/stress-card.webp" alt="Stress Relief Patch" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><img src="../assets/images/stress-studio-card.webp" alt="Stress Relief Patch" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">Stress Relief Patch</a></h3>
     
@@ -483,7 +515,7 @@ body.has-sticky .wa-float { bottom: 84px; }
   </div>
 </article>
 <article class="card is-soldout" data-product="dopamine">
-  <div class="card-media"><span class="tag">Agotado</span><img src="../assets/images/dopamine-card.webp" alt="Dopamine Patch" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><span class="tag">Agotado</span><img src="../assets/images/dopamine-studio-card.webp" alt="Dopamine Patch" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="agotado-mobile.html">Dopamine Patch</a></h3>
     
@@ -495,7 +527,7 @@ body.has-sticky .wa-float { bottom: 84px; }
   </div>
 </article>
 <article class="card" data-product="nad">
-  <div class="card-media"><img src="../assets/images/nad-card.webp" alt="NAD+ Patch" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><img src="../assets/images/nad-studio-card.webp" alt="NAD+ Patch" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">NAD+ Patch</a></h3>
     
@@ -543,7 +575,7 @@ body.has-sticky .wa-float { bottom: 84px; }
     <div class="section-head"><span class="eyebrow">Combos</span><h2>Combiná y ahorrá</h2><p>Elegí los parches que mejor se adapten a tu estilo de vida y pagá menos por cada uno.</p></div>
     <div class="grid">
 <article class="card" data-product="combo-trio">
-  <div class="card-media"><span class="tag save">Más vendido</span><img src="../assets/images/focus-card.webp" alt="Combo Trío Bienestar" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><span class="tag save">Más vendido</span><img src="../assets/images/combo-trio-card.webp" alt="Combo Trío Bienestar" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="combo-mobile.html">Combo Trío Bienestar</a></h3>
     <div class="combo-chips" aria-hidden="true"><img src="../assets/images/focus-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"><img src="../assets/images/glp1-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"><img src="../assets/images/stress-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"></div>
@@ -555,7 +587,7 @@ body.has-sticky .wa-float { bottom: 84px; }
   </div>
 </article>
 <article class="card" data-product="combo-energia-foco">
-  <div class="card-media"><img src="../assets/images/energy-card.webp" alt="Combo Energía &amp; Foco" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><img src="../assets/images/combo-energia-foco-card.webp" alt="Combo Energía &amp; Foco" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">Combo Energía &amp; Foco</a></h3>
     <div class="combo-chips" aria-hidden="true"><img src="../assets/images/energy-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"><img src="../assets/images/focus-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"></div>
@@ -567,7 +599,7 @@ body.has-sticky .wa-float { bottom: 84px; }
   </div>
 </article>
 <article class="card" data-product="combo-foco-calma">
-  <div class="card-media"><img src="../assets/images/focus-card.webp" alt="Combo Foco &amp; Calma" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><img src="../assets/images/combo-foco-calma-card.webp" alt="Combo Foco &amp; Calma" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">Combo Foco &amp; Calma</a></h3>
     <div class="combo-chips" aria-hidden="true"><img src="../assets/images/focus-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"><img src="../assets/images/stress-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"></div>
@@ -579,7 +611,7 @@ body.has-sticky .wa-float { bottom: 84px; }
   </div>
 </article>
 <article class="card" data-product="combo-metabolismo">
-  <div class="card-media"><img src="../assets/images/glp1-card.webp" alt="Combo Metabolismo &amp; Energía" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><img src="../assets/images/combo-metabolismo-card.webp" alt="Combo Metabolismo &amp; Energía" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">Combo Metabolismo &amp; Energía</a></h3>
     <div class="combo-chips" aria-hidden="true"><img src="../assets/images/glp1-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"><img src="../assets/images/energy-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"></div>
@@ -591,7 +623,7 @@ body.has-sticky .wa-float { bottom: 84px; }
   </div>
 </article>
 <article class="card is-soldout" data-product="combo-mood">
-  <div class="card-media"><span class="tag">Agotado</span><img src="../assets/images/dopamine-card.webp" alt="Combo Mood &amp; Calma" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><span class="tag">Agotado</span><img src="../assets/images/combo-mood-card.webp" alt="Combo Mood &amp; Calma" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">Combo Mood &amp; Calma</a></h3>
     <div class="combo-chips" aria-hidden="true"><img src="../assets/images/dopamine-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"><img src="../assets/images/stress-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"></div>
@@ -603,7 +635,7 @@ body.has-sticky .wa-float { bottom: 84px; }
   </div>
 </article>
 <article class="card" data-product="combo-full">
-  <div class="card-media"><span class="tag save">Mejor ahorro</span><img src="../assets/images/glp1-card.webp" alt="Combo Full House" width="520" height="520" loading="lazy" decoding="async"></div>
+  <div class="card-media"><span class="tag save">Mejor ahorro</span><img src="../assets/images/combo-full-glp1-focus-energy-stress-card.webp" alt="Combo Full House" width="520" height="520" loading="lazy" decoding="async"></div>
   <div class="card-body">
     <h3><a href="producto-mobile.html">Combo Full House</a></h3>
     <div class="combo-chips" aria-hidden="true"><img src="../assets/images/glp1-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"><img src="../assets/images/focus-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"><img src="../assets/images/energy-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"><img src="../assets/images/stress-thumb.webp" alt="" width="40" height="40" loading="lazy" decoding="async"></div>
