@@ -24,7 +24,7 @@ export const FULL_HOUSE_PRICE_BY_COUNT = { 2: 17900, 3: 26900, 4: 35900, 5: 4490
 
 export const SITE = {
   name: 'PatchHouse.CR',
-  url: 'https://patchhouse.shopping',
+  url: 'https://www.patchhouse.shopping',
   whatsapp: '50670526254',
   whatsappDisplay: '7052-6254',
   instagram: 'https://www.instagram.com/patchhouse.cr/',
