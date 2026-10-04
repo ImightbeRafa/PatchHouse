@@ -1,4 +1,4 @@
-import { SITE, SHIPPING_COST, formatCRC } from '../../../shared/catalog.js';
+import { SITE, SHIPPING_COST, FREE_SHIPPING_FROM, formatCRC } from '../../../shared/catalog.js';
 import { layout, esc } from '../layout.js';
 
 const UPDATED = 'Octubre 2026';
@@ -16,7 +16,8 @@ export function shippingPage() {
 <h2>1. Cobertura y costo de envío</h2>
 <ul>
   <li>Enviamos a <b>todo Costa Rica</b> por Correos de Costa Rica o mensajería privada.</li>
-  <li>El envío tiene un costo <b>fijo de ${formatCRC(SHIPPING_COST)} por pedido</b>, sin importar la cantidad de productos ni la provincia.</li>
+  <li><b>Envío gratis</b> en pedidos de <b>${formatCRC(FREE_SHIPPING_FROM)} o más</b> (subtotal de productos).</li>
+  <li>En pedidos menores, el envío cuesta <b>${formatCRC(SHIPPING_COST)} por pedido</b>, sin importar la provincia.</li>
   <li>El costo de envío se muestra en el carrito y se suma al total antes de pagar. No hay cargos ocultos.</li>
 </ul>
 
@@ -78,7 +79,7 @@ export function termsPage() {
 <ul>
   <li>Los precios se muestran en <b>colones costarricenses (₡)</b> y son por paquete de 30 parches, salvo que se indique otra cosa.</li>
   <li>Los combos tienen un precio especial que se muestra en cada producto.</li>
-  <li>El envío tiene un costo fijo de ${formatCRC(SHIPPING_COST)} por pedido y se suma al total antes de pagar.</li>
+  <li>El envío es gratis en pedidos de ${formatCRC(FREE_SHIPPING_FROM)} o más; en pedidos menores cuesta ${formatCRC(SHIPPING_COST)} y se suma al total antes de pagar.</li>
   <li>Podemos modificar precios y promociones en cualquier momento. El precio aplicable es el que ves al confirmar tu pedido.</li>
 </ul>
 

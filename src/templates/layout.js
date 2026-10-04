@@ -2,7 +2,7 @@
  * Shared page shell (head, header, footer, cart drawer) + small HTML helpers.
  * Pure string templates: executed by scripts/build-pages.js, never shipped to the browser.
  */
-import { SITE, FAQ } from '../../shared/catalog.js';
+import { SITE, FAQ, FREE_SHIPPING_FROM, formatCRC } from '../../shared/catalog.js';
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -38,6 +38,7 @@ export const icons = {
 const NAV = [
   ['/#tienda', 'Tienda'],
   ['/#combos', 'Combos'],
+  ['/#quiz', '¿Cuál es para mí?'],
   ['/#como-funciona', 'Cómo funciona'],
   ['/#faq', 'Preguntas']
 ];
@@ -52,7 +53,7 @@ if('requestIdleCallback' in window)requestIdleCallback(l,{timeout:3000});else ad
 export function header(current = '') {
   const links = NAV.map(([href, label]) => `<a href="${href}">${label}</a>`).join('');
   return `
-<div class="ann" role="note">Envíos a todo el país · <strong>SINPE Móvil</strong> o tarjeta</div>
+<div class="ann" role="note"><strong>Envío gratis</strong> desde ${formatCRC(FREE_SHIPPING_FROM)} · SINPE Móvil o tarjeta</div>
 <header class="site-header">
   <div class="container bar">
     <button class="icon-btn menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="primary-nav" data-menu-toggle>${icons.menu}</button>

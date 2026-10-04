@@ -1,4 +1,4 @@
-import { SITE, FAQ, COMMON_USAGE, REVIEWS, REVIEWS_ARE_PLACEHOLDERS, reviewSummary, formatCRC, SHIPPING_COST, SINGLE_PRICE } from '../../../shared/catalog.js';
+import { SITE, FAQ, COMMON_USAGE, REVIEWS, REVIEWS_ARE_PLACEHOLDERS, reviewSummary, formatCRC, SHIPPING_COST, SINGLE_PRICE, FREE_SHIPPING_FROM } from '../../../shared/catalog.js';
 import { layout, esc, faqList, faqJsonLd, icons } from '../layout.js';
 import { productCard, productImage, priceBlock, reels, benefitCards, stepCards } from '../components.js';
 
@@ -12,7 +12,7 @@ function gallery(p, cat) {
   const members = p.includes.map((k) => cat.products[k]);
   const photo = isCombo
     ? `<img src="${productImage(p, 'gallery')}" alt="${esc(p.name)}: ${esc(members.map((m) => m.name).join(', '))}" width="1000" height="1000" fetchpriority="high" decoding="async">`
-    : `<img src="${productImage(p, 'gallery')}" alt="${esc(p.name)}, paquete de 30 parches" width="1000" height="1000" fetchpriority="high" decoding="async">`;
+    : `<img src="${productImage(p, 'gallery')}" srcset="${productImage(p, 'card')} 520w, ${productImage(p, 'gallery')} 1000w" sizes="(min-width: 900px) 560px, 100vw" alt="${esc(p.name)}, paquete de 30 parches" width="1000" height="1000" fetchpriority="high" decoding="async">`;
   const slides = [{ label: null, thumb: productImage(p, 'thumb'), html: photo }];
   if (!isCombo) {
     slides.push({ label: 'En color', thumb: `/images/${p.key}-studio-thumb.webp`, html: `<img src="/images/${p.key}-studio-gallery.webp" alt="${esc(p.name)} sobre fondo de color" width="1000" height="1000" loading="lazy" decoding="async">` });
@@ -105,7 +105,7 @@ export function productPage(p, cat) {
       </div>`;
 
   const trust = `<ul class="micro-trust">
-    <li>${icons.truck}<div><b>Envío a todo el país</b><span>${formatCRC(SHIPPING_COST)} · ${SITE.deliveryDays}</span></div></li>
+    <li>${icons.truck}<div><b>Envío gratis desde ${formatCRC(FREE_SHIPPING_FROM)}</b><span>A todo el país · ${SITE.deliveryDays}</span></div></li>
     <li>${icons.lock}<div><b>Pago seguro</b><span>SINPE Móvil o tarjeta</span></div></li>
     <li>${icons.chat}<div><b>Atención por WhatsApp</b><span>${SITE.whatsappDisplay}</span></div></li>
   </ul>`;
@@ -113,7 +113,7 @@ export function productPage(p, cat) {
   const accordions = `<div class="acc">
     ${isCombo ? '' : `<details><summary>Ingredientes</summary><div class="body"><ul class="ing-plain">${p.ingredients.map(([n, r]) => `<li><b>${esc(n)}</b>: ${esc(r)}</li>`).join('')}</ul></div></details>`}
     <details><summary>Cómo se usa</summary><div class="body"><p>Despegá el parche, aplicalo en zona limpia y seca (brazo, hombro o espalda) y dejalo actuar hasta 24 horas. Cambialo cada día. Cada paquete trae 30 parches.</p></div></details>
-    <details><summary>Envíos y retiro</summary><div class="body"><p>Envío fijo de ${formatCRC(SHIPPING_COST)} a todo Costa Rica por Correos de Costa Rica o mensajería privada, en ${SITE.deliveryDays}. Retiro en ${SITE.pickup}.</p></div></details>
+    <details><summary>Envíos y retiro</summary><div class="body"><p>Envío gratis en pedidos de ${formatCRC(FREE_SHIPPING_FROM)} o más; si no, ${formatCRC(SHIPPING_COST)}. A todo Costa Rica por Correos de Costa Rica o mensajería privada, en ${SITE.deliveryDays}. Retiro en ${SITE.pickup}.</p></div></details>
   </div>
   <p class="fineprint">${p.note ? esc(p.note) + ' ' : ''}Suplemento de bienestar. No es un medicamento ni sustituye un tratamiento médico. Si tenés una condición médica, tomás medicamentos, estás embarazada o en lactancia, consultá con tu médico antes de usarlo.</p>`;
 
@@ -223,6 +223,8 @@ ${reviewsHtml}
     page: 'pdp',
     css: ['/src/styles/pdp.css'],
     bodyClass: sold ? '' : 'has-sticky-bar',
-    head: `<link rel="preload" as="image" type="image/webp" href="${productImage(p, 'gallery')}" fetchpriority="high">`
+    head: isCombo
+      ? `<link rel="preload" as="image" type="image/webp" href="${productImage(p, 'gallery')}" fetchpriority="high">`
+      : `<link rel="preload" as="image" type="image/webp" href="${productImage(p, 'gallery')}" imagesrcset="${productImage(p, 'card')} 520w, ${productImage(p, 'gallery')} 1000w" imagesizes="(min-width: 900px) 560px, 100vw" fetchpriority="high">`
   });
 }

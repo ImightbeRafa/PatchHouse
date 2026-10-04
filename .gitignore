@@ -24,3 +24,6 @@ Thumbs.db
 
 # Large original videos (kept locally, re-encoded copies live in public/images)
 /assets-src/video/*.mov
+
+# Design preview snapshots (regenerate with: npm run dev, then npm run preview:design)
+/design-preview/

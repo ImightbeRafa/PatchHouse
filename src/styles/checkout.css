@@ -89,6 +89,7 @@ body.is-checkout .wa-float { bottom: 88px; }
 .summary-body { padding: 0 20px 20px; border-top: 1px solid var(--line-soft); }
 .summary .line { grid-template-columns: 64px 1fr; }
 .summary .line img { width: 64px; height: 64px; }
+[data-ship-progress]:not(:empty) { margin-top: 14px; }
 .totals { display: grid; gap: 8px; margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
 .totals > div { display: flex; justify-content: space-between; font-size: 15px; }
 .totals dt, .totals dd { margin: 0; }

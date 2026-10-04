@@ -84,7 +84,7 @@ async function sendCustomerEmail(order, sinpe) {
           </table>
           <br>
           ${order.subtotal ? `<p><span class="label">Subtotal:</span> ${formatCRC(order.subtotal)}</p>` : ''}
-          <p><span class="label">Envío:</span> ${formatCRC(order.shippingCost)}</p>
+          <p><span class="label">Envío:</span> ${order.shippingCost ? formatCRC(order.shippingCost) : 'Gratis'}</p>
           <p><span class="label">Total:</span> <strong>${formatCRC(order.total)}</strong></p>
         </div>
 
@@ -174,7 +174,7 @@ async function sendAdminEmail(order) {
         <h3>Productos:</h3>
         <p class="info-item">${itemsSummary}</p>
         ${order.subtotal ? `<p class="info-item"><span class="label">Subtotal:</span> ${formatCRC(order.subtotal)}</p>` : ''}
-        <p class="info-item"><span class="label">Envío:</span> ${formatCRC(order.shippingCost)}</p>
+        <p class="info-item"><span class="label">Envío:</span> ${order.shippingCost ? formatCRC(order.shippingCost) : 'Gratis'}</p>
         <p class="info-item"><span class="label total">Total:</span> <span class="total">${formatCRC(order.total)}</span></p>
       </div>
 
@@ -261,7 +261,7 @@ export async function sendPendingOrderEmail(order, context = {}) {
     <strong>Email:</strong> ${esc(order.email)}</p>
     <p><strong>Productos:</strong><br>${itemsSummary}</p>
     <p><strong>Subtotal:</strong> ${formatCRC(order.subtotal)}<br>
-    <strong>Envio:</strong> ${formatCRC(order.shippingCost)}<br>
+    <strong>Envio:</strong> ${order.shippingCost ? formatCRC(order.shippingCost) : 'Gratis'}<br>
     <strong>Total:</strong> ${formatCRC(order.total)}</p>
     <p><strong>Direccion:</strong><br>
     ${esc(order.direccion)}<br>

@@ -1,4 +1,4 @@
-import { SITE, FAQ, COMMON_USAGE, formatCRC, SHIPPING_COST } from '../../../shared/catalog.js';
+import { SITE, FAQ, COMMON_USAGE, formatCRC, SHIPPING_COST, FREE_SHIPPING_FROM } from '../../../shared/catalog.js';
 import { layout, esc, faqList, faqJsonLd } from '../layout.js';
 import { productCard, productImage, reels, benefitCards, stepCards, trustStrip } from '../components.js';
 
@@ -13,7 +13,7 @@ export function homePage(cat) {
   <div class="container hero-inner">
     <div class="hero-visual">
       <div class="hero-ring" aria-hidden="true"></div>
-      <img class="hero-packs" src="/images/hero-packs.webp" alt="Los seis parches PatchHouse: Focus, Stress Relief, GLP-1, Energy, Dopamine y NAD+" width="1500" height="716" fetchpriority="high" decoding="async">
+      <img class="hero-packs" src="/images/hero-packs-900.webp" srcset="/images/hero-packs-600.webp 600w, /images/hero-packs-900.webp 900w, /images/hero-packs.webp 1500w" sizes="(min-width: 900px) 640px, 100vw" alt="Los seis parches PatchHouse: Focus, Stress Relief, GLP-1, Energy, Dopamine y NAD+" width="1500" height="716" fetchpriority="high">
       <span class="float-chip c1"><b>30</b> parches · 1 mes</span>
       <span class="float-chip c2">Desde <b>${formatCRC(lowest)}</b></span>
       <span class="float-chip c3">Pagá con <b>SINPE Móvil</b></span>
@@ -24,7 +24,7 @@ export function homePage(cat) {
       <p class="hero-sub">Suplementos de bienestar con ingredientes de origen natural que se aplican sobre la piel. Sin pastillas, sin complicaciones: pegalo y seguí con tu día.</p>
       <div class="hero-actions">
         <a class="btn btn-cta btn-lg" href="#tienda">Ver los parches</a>
-        <a class="btn btn-ghost btn-lg" href="#combos">Combos con ahorro</a>
+        <a class="btn btn-ghost btn-lg" href="#quiz">¿Cuál es para mí?</a>
       </div>
       <ul class="hero-points"><li>Envío a todo el país</li><li>SINPE Móvil o tarjeta</li><li>Atención por WhatsApp</li></ul>
       <div class="hero-pills" aria-label="Fórmulas">${patches.map((p) => `<a href="${p.path}" style="--c:${p.accent}">${esc(p.short)}</a>`).join('')}</div>
@@ -40,6 +40,22 @@ ${trustStrip()}
   <div class="container">
     <div class="section-head"><span class="eyebrow">Nuestros parches</span><h2>Una fórmula para cada momento</h2><p>Cada paquete trae 30 parches: un mes completo de rutina desde ${formatCRC(lowest)}.</p></div>
     <div class="grid">${patches.map((p) => productCard(p, cat)).join('')}</div>
+  </div>
+</section>
+
+<section class="section quiz-section" id="quiz">
+  <div class="container">
+    <div class="quiz" data-quiz>
+      <div class="quiz-intro">
+        <span class="eyebrow">Quiz de 30 segundos</span>
+        <h2>¿Cuál parche es para mí?</h2>
+        <p>Respondé 3 preguntas y te recomendamos la fórmula o el combo que mejor se adapta a tu día.</p>
+        <div class="quiz-progress" aria-hidden="true"><i data-quiz-bar></i></div>
+      </div>
+      <div class="quiz-stage" data-quiz-stage aria-live="polite">
+        <noscript><p>Mirá todos los parches en la <a href="#tienda">tienda</a>.</p></noscript>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -86,7 +102,7 @@ ${trustStrip()}
 <section class="section">
   <div class="container">
     <div class="info-banner">
-      <div><h3>Envíos a todo Costa Rica</h3><p>Correos de Costa Rica o mensajería privada. Envío fijo de ${formatCRC(SHIPPING_COST)} y entrega en ${SITE.deliveryDays}.</p></div>
+      <div><h3>Envíos a todo Costa Rica</h3><p>Correos de Costa Rica o mensajería privada, entrega en ${SITE.deliveryDays}. <b>Envío gratis en pedidos de ${formatCRC(FREE_SHIPPING_FROM)} o más</b>; si no, ${formatCRC(SHIPPING_COST)}.</p></div>
       <ul class="info-list"><li>Retiro en ${SITE.pickup}</li><li>Pagá con SINPE Móvil o tarjeta</li><li>Cobertura nacional</li></ul>
     </div>
   </div>
@@ -123,6 +139,6 @@ ${trustStrip()}
     main,
     page: 'home',
     jsonld,
-    head: '<link rel="preload" as="image" type="image/webp" href="/images/hero-packs.webp" fetchpriority="high">'
+    head: '<link rel="preload" as="image" type="image/webp" href="/images/hero-packs-900.webp" imagesrcset="/images/hero-packs-600.webp 600w, /images/hero-packs-900.webp 900w, /images/hero-packs.webp 1500w" imagesizes="(min-width: 900px) 640px, 100vw" fetchpriority="high">'
   });
 }

@@ -10,6 +10,7 @@ npm run dev      # genera las páginas + servidor local con la API en modo sandb
 npm run build    # genera las páginas y construye dist/
 npm test         # precios, validación, firma de pedidos y handlers de la API
 npm run images   # (manual) regenera imágenes/videos web desde assets-src/  (requiere ffmpeg para video)
+npm run visuals  # (manual) fotos en color, combos, hero, infografías y banners (requiere Chrome/Edge)
 ```
 
 `npm run dev` **nunca** envía correos, escribe en el CRM, dispara eventos de Meta ni llama a Tilopay: el pago con tarjeta redirige a una página de éxito local y SINPE registra el pedido en memoria. Para probar SINPE localmente creá un `.env.local` con `SINPE_PHONE` y `SINPE_HOLDER`.
@@ -37,9 +38,14 @@ Para **editar un producto, precio, combo o FAQ** tocá `shared/catalog.js` y cor
 | Método | Flujo |
 |---|---|
 | **SINPE Móvil** | `POST /api/sinpe/create-order` registra el pedido como PENDIENTE (CRM + correo al admin + correo al cliente con instrucciones + evento Lead). El cliente ve `/pedido/` con número, monto y detalle; envía el comprobante por WhatsApp. **Despachás cuando verificás el depósito.** |
-| **Tarjeta (Tilopay)** | `POST /api/tilopay/create-payment` firma el pedido (HMAC) y devuelve la URL de pago. El cliente vuelve a `/success.html`. **El pedido se procesa en el webhook firmado** (`/api/tilopay/webhook`); la redirección sola no basta (no es confiable). |
+| **Tarjeta (Tilopay)** | `POST /api/tilopay/create-payment` firma el pedido (HMAC) y devuelve la URL de pago. Al volver a `/success.html` se verifica el `OrderHash` de Tilopay (HMAC con la contraseña del API, igual que el plugin oficial): si es válido el pedido se procesa al instante; si no, lo procesa el webhook firmado (`/api/tilopay/webhook`). |
 
 `GET /api/config` indica qué métodos están disponibles: SINPE aparece solo si `SINPE_PHONE` y `SINPE_HOLDER` están configurados.
+
+## Reglas de precio
+
+- Parches a ₡9.900 c/u; descuentos solo en combos (`shared/catalog.js`).
+- **Envío gratis desde ₡25.000** de subtotal (`FREE_SHIPPING_FROM`); si no, ₡3.000. El servidor usa la misma regla.
 
 ## Despliegue (Vercel)
 

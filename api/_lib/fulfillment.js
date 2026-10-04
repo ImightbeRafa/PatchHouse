@@ -2,6 +2,7 @@ import { sendOrderEmail, sendPaymentProcessingAlert } from './email.js';
 import { sendOrderToBetsyWithRetry } from './betsy.js';
 import { sendMetaEvent, generateEventId } from './meta.js';
 import { normalizeTrustedOrder } from './order.js';
+import { isDryRun } from './http.js';
 
 const processedPayments = new Set();
 
@@ -53,6 +54,11 @@ export async function processPaidOrder({ order, transactionId, req, source = 'un
       order: normalized,
       results: {}
     };
+  }
+
+  if (isDryRun()) {
+    console.log('[Fulfillment][dry-run] paid order not sent anywhere:', normalized.orderId);
+    return { success: true, dryRun: true, order: normalized, results: {} };
   }
 
   const paidOrder = {

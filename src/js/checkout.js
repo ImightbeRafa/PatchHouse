@@ -2,7 +2,7 @@
  * Checkout: cart summary, inline validation, SINPE Móvil + card (Tilopay) submission.
  * The server re-validates and re-prices everything; this file only drives the UI.
  */
-import './core.js';
+import { shippingProgress } from './core.js';
 import { cart, catalog, storageGet, storageSet } from './lib/store.js';
 import { $, $$, formatCRC, lineHtml, bindLineControls, track, orderContents, toast } from './lib/ui.js';
 import { validateCheckout, sanitizeCustomer, formatPhone } from '../../shared/validate.js';
@@ -35,7 +35,8 @@ function renderSummary() {
 
   $('[data-lines]').innerHTML = s.items.map((l) => lineHtml(l, catalog.products[l.key], { compact: true })).join('');
   $('[data-subtotal]').textContent = formatCRC(s.subtotal);
-  $('[data-shipping]').textContent = formatCRC(s.shipping);
+  $('[data-shipping]').textContent = s.shipping ? formatCRC(s.shipping) : 'Gratis';
+  $('[data-ship-progress]').innerHTML = shippingProgress(s.subtotal);
   $('[data-total]').textContent = formatCRC(s.total);
   $('[data-savings-row]').hidden = !s.savings;
   $('[data-savings]').textContent = `−${formatCRC(s.savings)}`;

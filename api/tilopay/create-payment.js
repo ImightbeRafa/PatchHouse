@@ -63,6 +63,7 @@ export default async function handler(req, res) {
     const snapshot = {
       orderId, ...customer,
       items: priced.items.map(({ key, qty }) => ({ key, qty })),
+      total: priced.total,
       createdAt: new Date().toISOString()
     };
 

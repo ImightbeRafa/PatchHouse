@@ -1,5 +1,5 @@
 /** Reusable HTML fragments for the generated pages. */
-import { formatCRC, SITE } from '../../shared/catalog.js';
+import { formatCRC, SITE, FREE_SHIPPING_FROM } from '../../shared/catalog.js';
 import { esc, icons } from './layout.js';
 
 /** Image path helpers: every product has square thumb/card/gallery webp files. */
@@ -10,11 +10,20 @@ export function priceBlock(p, { unit = true } = {}) {
   return `<div class="price"><b>${formatCRC(p.price)}</b>${compare}${unit && p.unitLabel ? `<small>${esc(p.unitLabel)}</small>` : ''}</div>`;
 }
 
+/** "o ahorrá hasta ₡X en combo" under a single patch's price (combos that include it and are in stock). */
+function comboHint(p, cat) {
+  if (p.kind !== 'patch' || cat.isSoldOut(p.key)) return '';
+  const best = cat.combos().filter((c) => c.includes.includes(p.key) && !cat.isSoldOut(c.key)).sort((a, b) => b.savings - a.savings)[0];
+  if (!best || !best.savings) return '';
+  return `<a class="combo-hint" href="${p.path}#pack">o ahorrá hasta <b>${formatCRC(best.savings)}</b> en combo →</a>`;
+}
+
 /** Card for a single patch or a combo. `cat` is the built catalog. */
 export function productCard(p, cat) {
   const sold = cat.isSoldOut(p.key);
   const isCombo = p.kind === 'combo';
-  const media = `<img src="/images/${p.cardImage || p.image}-card.webp" alt="${esc(p.name)}" width="520" height="520" loading="lazy" decoding="async">`;
+  const img = `/images/${p.cardImage || p.image}`;
+  const media = `<img src="${img}-card.webp" srcset="${img}-sm.webp 320w, ${img}-card.webp 520w" sizes="(min-width: 1000px) 360px, (min-width: 700px) 31vw, 46vw" alt="${esc(p.name)}" width="520" height="520" loading="lazy" decoding="async">`;
   const tagline = isCombo ? p.includes.map((k) => cat.products[k].short).join(' + ') : p.tagline;
   const chips = isCombo
     ? `<div class="combo-chips" aria-hidden="true">${p.includes.map((k) => `<img src="${productImage(cat.products[k], 'thumb')}" alt="" width="40" height="40" loading="lazy" decoding="async">`).join('')}</div>`
@@ -29,6 +38,7 @@ export function productCard(p, cat) {
     <p class="card-tagline">${esc(tagline)}</p>
     <div class="card-foot">
       ${priceBlock(p, { unit: false })}
+      ${comboHint(p, cat)}
       ${sold
         ? `<p class="soldout-note">${esc(cat.config.soldOutMessage)}</p>`
         : `<button class="btn btn-cta btn-sm" type="button" data-add="${p.key}" data-qty="1">Agregar al carrito</button>`}
@@ -80,7 +90,7 @@ export function stepCards(steps) {
 
 export function trustStrip() {
   const items = [
-    ['truck', 'Envío a todo el país', `₡3.000 fijo · ${SITE.deliveryDays}`],
+    ['truck', 'Envío gratis desde ${formatCRC(FREE_SHIPPING_FROM)}', `A todo el país · ${SITE.deliveryDays}`],
     ['lock', 'Pagá como prefieras', 'SINPE Móvil o tarjeta'],
     ['leaf', '100% vegano', 'Libre de crueldad animal'],
     ['chat', 'Atención por WhatsApp', SITE.whatsappDisplay]

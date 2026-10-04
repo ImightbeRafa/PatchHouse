@@ -84,7 +84,7 @@ function backdrop(size, colors, { dots = true } = {}) {
 }
 
 async function saveSquare(name, buffer, { og = true } = {}) {
-  for (const [suffix, size, q] of [['thumb', 160, 80], ['card', 520, 82], ['gallery', 1000, 84]]) {
+  for (const [suffix, size, q] of [['thumb', 160, 80], ['sm', 320, 80], ['card', 520, 82], ['gallery', 1000, 84]]) {
     await sharp(buffer).resize(size, size).webp({ quality: q, effort: 5 }).toFile(path.join(OUT, `${name}-${suffix}.webp`));
   }
   if (og) await sharp(buffer).resize(1000, 1000).jpeg({ quality: 84, mozjpeg: true }).toFile(path.join(OUT, `${name}-og.jpg`));
@@ -119,28 +119,19 @@ async function composition(keys, size = 1000, { transparent = false, dots = true
 }
 
 /* ---------- infographic (HTML → Chrome screenshot) ---------- */
+/** Real close-ups of the patches (frames from our own videos). Only where the printed patch matches the product. */
+const PATCH_PHOTOS = { glp1: 'patch-photos/pink.jpg', energy: 'patch-photos/yellow.jpg' };
+
 function infoHtml(key) {
   const p = PATCHES[key];
   const { c, ink, deep } = PACK_COLORS[key];
   const name = `${p.short.toUpperCase()} PATCH`;
   const vitamins = p.ingredients.map(([n]) => n.replace(/\s\d.*$/, '')).join(', ');
   const font = pathToFileURL(path.join(root, 'public/fonts/plus-jakarta-sans-latin.woff2')).href;
-  const pill = (title, text) => `<div class="row"><div class="pill">${title}</div><p>${text}</p></div>`;
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
-  @font-face{font-family:PJS;src:url('${font}') format('woff2');font-weight:200 800}
-  *{box-sizing:border-box;margin:0}
-  body{width:1000px;height:1000px;font-family:PJS,Arial,sans-serif;background:linear-gradient(160deg,#ffffff 0%,${tint(c, 0.86)} 100%);color:#1a1a2e;overflow:hidden;position:relative}
-  h1{position:absolute;left:60px;right:60px;top:56px;font-size:58px;line-height:1.02;font-weight:800;letter-spacing:-.02em;text-align:center}
-  h1 span{color:${deep}}
-  .art{position:absolute;left:30px;top:270px;width:470px;height:560px}
-  .rows{position:absolute;right:56px;top:300px;width:430px;display:grid;gap:44px}
-  .pill{display:inline-block;background:${c};color:${ink};font-weight:800;font-size:22px;letter-spacing:.04em;padding:12px 22px;border-radius:999px;text-transform:uppercase}
-  p{margin-top:12px;font-size:22px;line-height:1.38;color:#3a3a4a;padding-left:6px}
-  .foot{position:absolute;left:0;right:0;bottom:44px;text-align:center;font-size:20px;font-weight:700;color:${deep};letter-spacing:.06em}
-  .brand{position:absolute;left:0;right:0;bottom:78px;text-align:center;font-size:30px;font-weight:800;letter-spacing:-.02em}
-  </style></head><body>
-  <h1>¿QUÉ SON LOS PARCHES <span>DE BIENESTAR?</span></h1>
-  <svg class="art" viewBox="0 0 470 560" xmlns="http://www.w3.org/2000/svg">
+  const photo = PATCH_PHOTOS[key] ? pathToFileURL(path.join(SRC, PATCH_PHOTOS[key])).href : null;
+  const art = photo
+    ? `<div class="photo"><img src="${photo}" alt=""><span>Parche real</span></div>`
+    : `<svg class="art" viewBox="0 0 470 560" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <path id="ring" d="M235,150 m-118,0 a118,118 0 1,1 236,0 a118,118 0 1,1 -236,0"/>
       <linearGradient id="top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${tint(c, 0.1)}"/><stop offset="1" stop-color="${mix(c, '#000000', 0.12)}"/></linearGradient>
@@ -166,7 +157,26 @@ function infoHtml(key) {
     <g stroke="${c}" stroke-width="3" fill="${c}"><line x1="375" y1="120" x2="470" y2="70"/><circle cx="375" cy="120" r="6"/>
       <line x1="420" y1="320" x2="470" y2="300"/><circle cx="420" cy="320" r="6"/>
       <line x1="420" y1="450" x2="470" y2="520"/><circle cx="420" cy="450" r="6"/></g>
-  </svg>
+  </svg>`;
+  const pill = (title, text) => `<div class="row"><div class="pill">${title}</div><p>${text}</p></div>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+  @font-face{font-family:PJS;src:url('${font}') format('woff2');font-weight:200 800}
+  *{box-sizing:border-box;margin:0}
+  body{width:1000px;height:1000px;font-family:PJS,Arial,sans-serif;background:linear-gradient(160deg,#ffffff 0%,${tint(c, 0.86)} 100%);color:#1a1a2e;overflow:hidden;position:relative}
+  h1{position:absolute;left:60px;right:60px;top:56px;font-size:58px;line-height:1.02;font-weight:800;letter-spacing:-.02em;text-align:center}
+  h1 span{color:${deep}}
+  .art{position:absolute;left:30px;top:270px;width:470px;height:560px}
+  .rows{position:absolute;right:56px;top:300px;width:430px;display:grid;gap:44px}
+  .photo{position:absolute;left:52px;top:268px;width:430px;height:560px;border-radius:32px;overflow:hidden;box-shadow:0 24px 50px rgba(26,26,46,.22);border:8px solid #fff}
+  .photo img{width:100%;height:100%;object-fit:cover}
+  .photo span{position:absolute;left:16px;bottom:16px;background:${c};color:${ink};font-weight:800;font-size:18px;letter-spacing:.06em;text-transform:uppercase;padding:8px 14px;border-radius:999px}
+  .pill{display:inline-block;background:${c};color:${ink};font-weight:800;font-size:22px;letter-spacing:.04em;padding:12px 22px;border-radius:999px;text-transform:uppercase}
+  p{margin-top:12px;font-size:22px;line-height:1.38;color:#3a3a4a;padding-left:6px}
+  .foot{position:absolute;left:0;right:0;bottom:44px;text-align:center;font-size:20px;font-weight:700;color:${deep};letter-spacing:.06em}
+  .brand{position:absolute;left:0;right:0;bottom:78px;text-align:center;font-size:30px;font-weight:800;letter-spacing:-.02em}
+  </style></head><body>
+  <h1>¿QUÉ SON LOS PARCHES <span>DE BIENESTAR?</span></h1>
+${art}
   <div class="rows">
     ${pill('Capa superior', 'Protege la fórmula. Su color identifica tu parche.')}
     ${pill('Adhesivo suave', 'Suave con la piel y se mantiene en su lugar durante el día.')}
@@ -280,7 +290,9 @@ const HERO = [['focus', 190, 520, 470, -14], ['nad', 1310, 520, 470, 14], ['stre
 const heroLayers = [];
 for (const [k, x, y, h, deg] of HERO) heroLayers.push(...await layer(k, h, deg, x, y));
 const hero = await sharp({ create: { width: 1500, height: 900, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).composite(heroLayers).png().toBuffer();
-await sharp(hero).trim({ threshold: 1 }).webp({ quality: 86, alphaQuality: 90, effort: 5 }).toFile(path.join(OUT, 'hero-packs.webp'));
+const heroTrim = await sharp(hero).trim({ threshold: 1 }).png().toBuffer();
+await sharp(heroTrim).webp({ quality: 86, alphaQuality: 90, effort: 5 }).toFile(path.join(OUT, 'hero-packs.webp'));
+for (const w of [600, 900]) await sharp(heroTrim).resize({ width: w }).webp({ quality: 82, alphaQuality: 85, effort: 6 }).toFile(path.join(OUT, `hero-packs-${w}.webp`));
 console.log('  hero-packs');
 
 console.log('Infographics...');

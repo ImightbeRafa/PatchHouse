@@ -16,6 +16,7 @@ const transactionId = q.get('tilopay-transaction') || q.get('tpt') || q.get('tra
 const code = q.get('code');
 const returnData = q.get('returnData');
 const orderHash = q.get('OrderHash') || q.get('orderHash');
+const auth = q.get('auth');
 
 function fail(title, text) {
   if (title) $('[data-error-title]').textContent = title;
@@ -57,7 +58,7 @@ function done(summary, pending) {
     const res = await fetch('/api/tilopay/confirm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId, transactionId, code, returnData, orderHash })
+      body: JSON.stringify({ orderId, transactionId, code, auth, returnData, orderHash })
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.success) {

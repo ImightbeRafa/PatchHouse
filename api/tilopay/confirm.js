@@ -2,9 +2,9 @@
  * PatchHouse – Tilopay redirect confirmation (called by /success.html).
  *
  * The redirect query string is controlled by the browser, so `code=1` alone proves nothing.
- * By default this endpoint only validates the signed order snapshot and tells the admin an
- * order is awaiting verification; fulfilment (CRM, emails, Purchase event) happens in the
- * signed webhook. Set TILOPAY_REDIRECT_FULFILL=true only if you cannot receive webhooks.
+ * The order is fulfilled here only when Tilopay's OrderHash verifies (HMAC with our API password,
+ * see api/_lib/tilopay.js). Otherwise the admin gets a "pending" notice and the signed webhook
+ * fulfils it. CRM 409 "already exists" de-duplicates redirect + webhook.
  */
 import { sendPaymentProcessingAlert, sendPendingOrderEmail } from '../_lib/email.js';
 import { processPaidOrder } from '../_lib/fulfillment.js';
@@ -12,12 +12,13 @@ import { normalizeTrustedOrder } from '../_lib/order.js';
 import { verifyOrderToken } from '../_lib/sign.js';
 import { generateEventId } from '../_lib/meta.js';
 import { guardPost, parseBody, isDryRun } from '../_lib/http.js';
+import { verifyTilopayRedirect } from '../_lib/tilopay.js';
 
 export default async function handler(req, res) {
   if (!guardPost(req, res)) return;
 
   try {
-    const { orderId, transactionId, code, returnData, orderHash } = parseBody(req);
+    const { orderId, transactionId, code, auth, returnData, orderHash } = parseBody(req);
     if (!orderId) return res.status(400).json({ success: false, error: 'Order ID required' });
 
     if (String(code) !== '1') {
@@ -36,6 +37,8 @@ export default async function handler(req, res) {
     }
 
     const order = normalizeTrustedOrder({ ...snapshot, orderId: snapshot.orderId || orderId });
+    // Use the amount actually sent to Tilopay (signed in the snapshot) in case prices changed since.
+    if (Number.isFinite(snapshot.total) && snapshot.total > 0) order.total = snapshot.total;
     const summary = {
       orderId: order.orderId,
       total: order.total,
@@ -43,16 +46,19 @@ export default async function handler(req, res) {
       metaEventId: generateEventId('purchase', order.orderId, transactionId)
     };
 
-    if (process.env.TILOPAY_REDIRECT_FULFILL === 'true') {
+    // Tilopay signs the redirect with an HMAC only it and we can compute (see api/_lib/tilopay.js).
+    const verified = verifyTilopayRedirect({ orderHash, tpt: transactionId, orderNumber: order.orderId, amount: order.total, code, auth, email: order.email });
+    if (verified || process.env.TILOPAY_REDIRECT_FULFILL === 'true') {
       const result = await processPaidOrder({
         order: { ...order, orderHash },
-        transactionId, req, source: 'redirect-confirm'
+        transactionId, req, source: verified ? 'redirect-verified' : 'redirect-unverified'
       });
       if (!result.success) {
         return res.status(502).json({ success: false, error: result.error || 'Paid order processing failed', orderId });
       }
       return res.json({ success: true, alreadyProcessed: Boolean(result.alreadyProcessed), ...summary });
     }
+    if (orderHash) console.warn(`[Confirm] OrderHash did not verify for ${order.orderId}; waiting for webhook`);
 
     if (isDryRun()) return res.json({ success: true, pending: true, dryRun: true, ...summary });
 

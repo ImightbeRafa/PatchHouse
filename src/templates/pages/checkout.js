@@ -83,6 +83,7 @@ export function checkoutPage() {
         <summary><span id="summary-title">Tu pedido</span><span class="sum-total" data-summary-mini></span></summary>
         <div class="summary-body">
           <div data-lines></div>
+          <div data-ship-progress></div>
           <dl class="totals">
             <div><dt>Subtotal</dt><dd data-subtotal></dd></div>
             <div class="save-line" data-savings-row hidden><dt>Ahorro</dt><dd data-savings></dd></div>

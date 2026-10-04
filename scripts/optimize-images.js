@@ -36,6 +36,7 @@ const PRODUCTS = [
 
 const SQUARES = [
   { suffix: 'thumb', size: 160, quality: 78 },
+  { suffix: 'sm', size: 320, quality: 78 },
   { suffix: 'card', size: 520, quality: 80 },
   { suffix: 'gallery', size: 1000, quality: 82 }
 ];

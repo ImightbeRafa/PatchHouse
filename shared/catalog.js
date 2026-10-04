@@ -9,6 +9,10 @@
  */
 
 export const SHIPPING_COST = 3000;
+/** Orders with a subtotal at or above this ship free (approved by the owner, Oct 2026). */
+export const FREE_SHIPPING_FROM = 25000;
+/** Shipping for a given subtotal (0 for an empty cart). */
+export const shippingFor = (subtotal) => (subtotal <= 0 ? 0 : subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING_COST);
 
 /** ₡ with dot thousands separators (locale-independent, so server and browser always agree). */
 export const formatCRC = (n) => `₡${String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
@@ -297,7 +301,7 @@ export function buildCatalog(config = {}) {
       return { key, name: p.name, qty, price: Math.round(lineTotal / qty), lineTotal, compareTotal: lineCompare(key, qty) };
     });
     const subtotal = items.reduce((s, i) => s + i.lineTotal, 0);
-    const shipping = items.length ? SHIPPING_COST : 0;
+    const shipping = items.length ? shippingFor(subtotal) : 0;
     const savings = items.reduce((s, i) => s + Math.max(i.compareTotal - i.lineTotal, 0), 0);
     return { items, subtotal, shipping, total: subtotal + shipping, savings };
   };
@@ -324,7 +328,7 @@ export const FAQ = [
   ['¿Pueden causar molestias?', 'Se aplican sobre la piel y no pasan por el sistema digestivo. Algunas personas con piel sensible pueden notar enrojecimiento o picazón en la zona; si ocurre, retirá el parche, lavá la zona y consultá con tu médico. Rotá la zona de aplicación cada día.'],
   ['¿Puedo combinar parches?', 'Sí. Podés usar varios según tus necesidades, por eso ofrecemos combos con descuento.'],
   ['¿Cómo puedo pagar?', 'Con SINPE Móvil (te damos el número al confirmar el pedido y nos enviás el comprobante por WhatsApp) o con tarjeta de crédito/débito por la pasarela segura de Tilopay.'],
-  ['¿Cuánto cuesta y cuánto tarda el envío?', `El envío a todo Costa Rica cuesta ${formatCRC(SHIPPING_COST)} fijos y tarda ${SITE.deliveryDays}. También ofrecemos retiro en ${SITE.pickup}.`]
+  ['¿Cuánto cuesta y cuánto tarda el envío?', `El envío a todo Costa Rica cuesta ${formatCRC(SHIPPING_COST)} y es GRATIS en pedidos de ${formatCRC(FREE_SHIPPING_FROM)} o más. Tarda ${SITE.deliveryDays}. También ofrecemos retiro en ${SITE.pickup}.`]
 ];
 
 /**

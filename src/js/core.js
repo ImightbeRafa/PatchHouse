@@ -4,7 +4,7 @@
  */
 import { cart, catalog } from './lib/store.js';
 import { $, $$, formatCRC, lineHtml, bindLineControls, toast, track, orderContents, esc } from './lib/ui.js';
-import { SHIPPING_COST } from '../../shared/catalog.js';
+import { FREE_SHIPPING_FROM } from '../../shared/catalog.js';
 
 /* ---------- mobile menu ---------- */
 const menuBtn = $('[data-menu-toggle]');
@@ -39,6 +39,16 @@ const body = $('[data-cart-body]');
 const foot = $('[data-cart-foot]');
 let lastFocus = null;
 
+/** "Te faltan ₡X para envío gratis" + progress bar (shared with the checkout summary). */
+export function shippingProgress(subtotal) {
+  const missing = FREE_SHIPPING_FROM - subtotal;
+  const pct = Math.max(4, Math.min(100, Math.round((subtotal / FREE_SHIPPING_FROM) * 100)));
+  const text = missing > 0
+    ? `Te faltan <b>${formatCRC(missing)}</b> para <b>envío gratis</b>`
+    : '<b>¡Tenés envío gratis!</b> 🎉';
+  return `<div class="ship-progress${missing > 0 ? '' : ' done'}"><p>${text}</p><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
+}
+
 function renderDrawer() {
   if (!body || !foot) return;
   const s = cart.summary();
@@ -54,7 +64,7 @@ function renderDrawer() {
   foot.innerHTML = `
     ${s.savings ? `<div class="drawer-total" style="font-size:14px;font-weight:700;color:var(--ok)"><span>Ahorrás</span><span>${formatCRC(s.savings)}</span></div>` : ''}
     <div class="drawer-total"><span>Subtotal</span><span>${formatCRC(s.subtotal)}</span></div>
-    <p class="drawer-note">Envío de ${formatCRC(SHIPPING_COST)} a todo Costa Rica. Se suma al finalizar.</p>
+    ${shippingProgress(s.subtotal)}
     <a class="btn btn-cta btn-lg btn-block" href="/checkout/">Finalizar compra</a>`;
 }
 
