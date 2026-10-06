@@ -74,6 +74,20 @@ export function track(name, params, options) {
   } catch { /* tracking must never break the shop */ }
 }
 
+/** Meta browser ids (_fbp / _fbc cookies) for server events; the API also reads them from the Cookie header. */
+export function metaIds() {
+  const read = (name) => {
+    const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
+    return m ? decodeURIComponent(m[1]) : undefined;
+  };
+  return { fbp: read('_fbp'), fbc: read('_fbc') };
+}
+
+/** Gives the pixel request a moment to leave before a full-page navigation cancels it. */
+export function afterTracking(ms = 400) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function orderContents(items) {
   return { content_ids: items.map((i) => i.key), content_type: 'product', num_items: items.reduce((n, i) => n + i.qty, 0), currency: 'CRC' };
 }

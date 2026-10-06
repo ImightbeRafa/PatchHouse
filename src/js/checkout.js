@@ -4,7 +4,7 @@
  */
 import { shippingProgress } from './core.js';
 import { cart, catalog, storageGet, storageSet } from './lib/store.js';
-import { $, $$, formatCRC, lineHtml, bindLineControls, track, orderContents, toast } from './lib/ui.js';
+import { $, $$, formatCRC, lineHtml, bindLineControls, track, orderContents, toast, metaIds, afterTracking } from './lib/ui.js';
 import { validateCheckout, sanitizeCustomer, formatPhone } from '../../shared/validate.js';
 
 const form = $('#checkout-form');
@@ -201,7 +201,8 @@ form.addEventListener('submit', async (e) => {
     ...customer,
     website: raw.website || '',
     items: summary.items.map(({ key, qty }) => ({ key, qty })),
-    clientOrderId: clientOrderId(customer, summary.total)
+    clientOrderId: clientOrderId(customer, summary.total),
+    meta: metaIds()
   };
 
   setBusy(true);
@@ -232,6 +233,7 @@ form.addEventListener('submit', async (e) => {
       if (!/^(https:\/\/|http:\/\/localhost[:/])/i.test(String(data.paymentUrl || ''))) throw new Error('Missing payment URL');
       track('InitiateCheckout', { ...contents, value: summary.total }, data.metaEventId ? { eventID: data.metaEventId } : undefined);
       storageSet(ORDER_KEY, JSON.stringify({ method: 'card', orderId: data.orderId, total: data.total, items: summary.items, savedAt: Date.now() }));
+      await afterTracking();
       window.location.assign(data.paymentUrl); // cart is cleared on /success.html once the payment is approved
       return;
     }
@@ -241,6 +243,7 @@ form.addEventListener('submit', async (e) => {
     storageSet(ORDER_KEY, JSON.stringify({ method: 'sinpe', ...data, savedAt: Date.now() }));
     try { sessionStorage.removeItem(CLIENT_ORDER_KEY); } catch { /* ignore */ }
     cart.clear();
+    await afterTracking();
     window.location.assign(`/pedido/?o=${encodeURIComponent(data.orderId)}`);
   } catch (err) {
     console.error('Checkout error:', err);

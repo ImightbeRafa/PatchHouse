@@ -2,7 +2,7 @@
  * PatchHouse – Tilopay: create a hosted payment for the cart.
  * Prices are recomputed here from the shared catalog; the browser's totals are never trusted.
  */
-import { sendMetaEvent, generateEventId } from '../_lib/meta.js';
+import { sendMetaEvent, generateEventId, browserContext, snapshotContext } from '../_lib/meta.js';
 import { catalog } from '../_lib/order.js';
 import { signOrder, hasSigningSecret } from '../_lib/sign.js';
 import { guardPost, parseBody, appUrl, newOrderId, ORDER_ID_RE, cardConfig, isDryRun } from '../_lib/http.js';
@@ -66,6 +66,10 @@ export default async function handler(req, res) {
       total: priced.total,
       createdAt: new Date().toISOString()
     };
+    // Shopper's ad-click/browser ids, IP and user agent, so the webhook's Purchase is attributed
+    // to them (the webhook request itself comes from Tilopay). Size-capped to keep returnData small.
+    const m = snapshotContext(browserContext(req, body.meta));
+    if (m && JSON.stringify({ ...snapshot, m }).length <= 2000) snapshot.m = m;
 
     if (isDryRun()) {
       // Sandbox: skip Tilopay and send the browser straight to our own success page with a signed snapshot.
@@ -111,7 +115,7 @@ export default async function handler(req, res) {
       value: priced.total, currency: 'CRC', content_type: 'product',
       content_ids: priced.items.map((i) => i.key),
       num_items: priced.items.reduce((n, i) => n + i.qty, 0)
-    }, `${site}/checkout/`).catch(() => {});
+    }, `${site}/checkout/`, body.meta).catch(() => {});
 
     return res.json({ success: true, orderId, metaEventId, paymentUrl, total: priced.total });
   } catch (error) {

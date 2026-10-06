@@ -59,7 +59,7 @@ export default async function handler(req, res) {
           value: order.total, currency: 'CRC', content_type: 'product',
           content_ids: order.items.map((i) => i.key),
           num_items: order.items.reduce((n, i) => n + i.qty, 0)
-        }, `${site}/checkout/`)
+        }, `${site}/checkout/`, body.meta)
       ]);
 
       crmOk = betsy.status === 'fulfilled' && Boolean(betsy.value && betsy.value.success);

@@ -97,13 +97,16 @@ export async function processPaidOrder({ order, transactionId, req, source = 'un
     results.email = { success: false, error: error.message };
   }
 
-  const appUrl = (process.env.APP_URL || 'https://patchhouse.shopping').replace(/\/+$/, '');
+  const appUrl = (process.env.APP_URL || 'https://www.patchhouse.shopping').replace(/\/+$/, '');
+  // The webhook request comes from Tilopay's servers: its IP/user agent are not the shopper's.
+  // There the shopper's context comes from the signed snapshot (paidOrder.m) instead.
+  const shopperReq = source === 'webhook' ? null : req;
   const metaEventId = generateEventId('purchase', paidOrder.orderId, transactionId);
   const contentIds = (paidOrder.items || []).map(i => i.key).filter(Boolean);
   const numItems = (paidOrder.items || []).reduce((sum, i) => sum + (parseInt(i.qty, 10) || 0), 0);
 
   try {
-    results.meta = await sendMetaEvent('Purchase', metaEventId, paidOrder, req, {
+    results.meta = await sendMetaEvent('Purchase', metaEventId, paidOrder, shopperReq, {
       value: paidOrder.total || 0,
       currency: 'CRC',
       content_ids: contentIds,

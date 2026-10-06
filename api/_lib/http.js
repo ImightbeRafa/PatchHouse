@@ -21,7 +21,7 @@ export function guardPost(req, res) {
 }
 
 export function appUrl() {
-  let url = process.env.APP_URL || 'https://patchhouse.shopping';
+  let url = process.env.APP_URL || 'https://www.patchhouse.shopping';
   if (!/^https?:\/\//.test(url)) url = `https://${url}`;
   return url.replace(/\/+$/, '');
 }

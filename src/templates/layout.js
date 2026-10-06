@@ -43,11 +43,17 @@ const NAV = [
   ['/#faq', 'Preguntas']
 ];
 
+// Meta Pixel. fbevents.js loads lazily (performance), so the ad click id (?fbclid=) is saved to the
+// _fbc cookie right away: a visitor who clicks on before the script loads keeps their attribution.
+// Local/dev hosts get a no-op fbq so test orders never reach the real pixel.
 const pixelScript = `<script>
-!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[]}(window,document);
+(function(w,d){var h=location.hostname;
+if(h==='localhost'||h==='[::1]'||/^127\\./.test(h)||/\\.(local|localhost|test)$/.test(h)){w.fbq=function(){if(w.console)console.debug('[pixel:dev]',[].slice.call(arguments))};return}
+try{var id=new URLSearchParams(location.search).get('fbclid');if(id&&/^[A-Za-z0-9_-]{10,500}$/.test(id)){var m=d.cookie.match(/(?:^|; )_fbc=fb\\.\\d\\.\\d+\\.([^;]+)/);if(!m||m[1]!==id){var dom=h.replace(/^www\\./,'');d.cookie='_fbc=fb.1.'+Date.now()+'.'+id+';path=/;max-age=7776000;SameSite=Lax'+(/\\./.test(dom)?';domain=.'+dom:'')}}}catch(e){}
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[]}(w,d);
 fbq('init','${SITE.pixelId}');fbq('track','PageView');
-(function(){function l(){if(window._fbqLoaded)return;window._fbqLoaded=true;var s=document.createElement('script');s.async=true;s.src='https://connect.facebook.net/en_US/fbevents.js';document.head.appendChild(s)}
-if('requestIdleCallback' in window)requestIdleCallback(l,{timeout:3000});else addEventListener('load',l)})();
+function l(){if(w._fbqLoaded)return;w._fbqLoaded=true;var s=d.createElement('script');s.async=true;s.src='https://connect.facebook.net/en_US/fbevents.js';d.head.appendChild(s)}
+if('requestIdleCallback' in w)requestIdleCallback(l,{timeout:2000});else addEventListener('load',l)})(window,document);
 </script>`;
 
 export function header(current = '') {

@@ -67,7 +67,9 @@ function done(summary, pending) {
     }
     try { sessionStorage.setItem(seenKey, '1'); } catch { /* ignore */ }
     // Browser Purchase shares its eventID with the server event so Meta de-duplicates them.
-    if (!data.pending) track('Purchase', { ...orderContents(data.items || []), value: data.total, currency: 'CRC' }, data.metaEventId ? { eventID: data.metaEventId } : undefined);
+    // Also sent while "pending": Tilopay approved the payment (code=1) and the signed webhook
+    // sends the matching server Purchase with the same eventID.
+    track('Purchase', { ...orderContents(data.items || []), value: data.total, currency: 'CRC' }, data.metaEventId ? { eventID: data.metaEventId } : undefined);
     done(data, Boolean(data.pending));
   } catch {
     fail('Error de conexión', 'No pudimos confirmar el pago por un problema de conexión. Si ya pagaste, escribinos por WhatsApp con tu número de orden.');
