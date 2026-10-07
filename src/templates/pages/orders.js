@@ -87,7 +87,8 @@ export function successPage() {
     main,
     page: 'success',
     css: ['/src/styles/checkout.css'],
-    noindex: true
+    noindex: true,
+    pixelNow: true
   });
 }
 

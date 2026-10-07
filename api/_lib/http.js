@@ -53,6 +53,7 @@ export function cardConfig() {
 
 /** Sandbox mode: no emails, CRM sync, Meta events or Tilopay calls. `npm run dev` defaults to this. */
 export function isDryRun() {
-  if (process.env.VERCEL_ENV === 'production') return false; // never sandbox real traffic
+  // Never sandbox real traffic (VPS: NODE_ENV=production; VERCEL_ENV kept for old deploys).
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') return false;
   return String(process.env.ORDER_DRY_RUN || '').toLowerCase() === 'true';
 }

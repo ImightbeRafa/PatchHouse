@@ -158,14 +158,23 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* ---------- vertical videos: load on view, muted autoplay, tap for sound ---------- */
+/* ---------- vertical videos: poster when near, video when visible, muted autoplay, tap for sound ---------- */
 function initReels() {
   const reels = $$('.reel video');
-  if (!reels.length || !('IntersectionObserver' in window)) return;
+  if (!reels.length) return;
   const saveData = navigator.connection && navigator.connection.saveData;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Posters (~300 KB for six) stay out of the initial page load: set them as the carousel approaches.
+  const showPoster = (v) => { if (!v.poster && v.dataset.poster) v.poster = v.dataset.poster; };
+  if (!('IntersectionObserver' in window)) { reels.forEach(showPoster); return; }
+  // Observe the carousel, not each video: reels off to the side are clipped by its scroller.
+  const near = new IntersectionObserver((entries) => {
+    entries.forEach(({ target, isIntersecting }) => { if (isIntersecting) { $$('video', target).forEach(showPoster); near.unobserve(target); } });
+  }, { rootMargin: '600px 0px' });
+  $$('[data-reels]').forEach((el) => near.observe(el));
 
   const load = (v) => {
+    showPoster(v);
     if (v.dataset.ready) return;
     v.dataset.ready = '1';
     v.src = v.dataset.src;
@@ -222,7 +231,8 @@ $$('.reels-wrap').forEach((wrap) => {
   prev.addEventListener('click', () => track.scrollBy({ left: -step(), behavior: 'smooth' }));
   next.addEventListener('click', () => track.scrollBy({ left: step(), behavior: 'smooth' }));
   track.addEventListener('scroll', sync, { passive: true });
-  sync();
+  // First measurement after the page has painted (reading layout during load forces a reflow).
+  addEventListener('load', () => requestAnimationFrame(sync), { once: true });
 });
 
 /* ---------- legacy links: old single-page checkout anchor ---------- */

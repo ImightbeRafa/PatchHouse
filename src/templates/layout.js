@@ -43,17 +43,25 @@ const NAV = [
   ['/#faq', 'Preguntas']
 ];
 
-// Meta Pixel. fbevents.js loads lazily (performance), so the ad click id (?fbclid=) is saved to the
-// _fbc cookie right away: a visitor who clicks on before the script loads keeps their attribution.
+// Meta Pixel. The stub, init and PageView run immediately (queued); fbevents.js (~260 KB, ~250 ms of
+// phone CPU) loads on the first interaction (tap, key, scroll), 3.5 s after load, right away on
+// conversion pages (`now`), or as soon as a conversion event is tracked (window.phLoadPixel, see
+// src/js/lib/ui.js). The ad click id (?fbclid=) is saved to the _fbc cookie right away, so a visitor
+// who clicks on before the script loads keeps their attribution (CAPI reads it too).
 // Local/dev hosts get a no-op fbq so test orders never reach the real pixel.
-const pixelScript = `<script>
+const pixelScript = (now = false) => `<script>
 (function(w,d){var h=location.hostname;
 if(h==='localhost'||h==='[::1]'||/^127\\./.test(h)||/\\.(local|localhost|test)$/.test(h)){w.fbq=function(){if(w.console)console.debug('[pixel:dev]',[].slice.call(arguments))};return}
 try{var id=new URLSearchParams(location.search).get('fbclid');if(id&&/^[A-Za-z0-9_-]{10,500}$/.test(id)){var m=d.cookie.match(/(?:^|; )_fbc=fb\\.\\d\\.\\d+\\.([^;]+)/);if(!m||m[1]!==id){var dom=h.replace(/^www\\./,'');d.cookie='_fbc=fb.1.'+Date.now()+'.'+id+';path=/;max-age=7776000;SameSite=Lax'+(/\\./.test(dom)?';domain=.'+dom:'')}}}catch(e){}
 !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[]}(w,d);
 fbq('init','${SITE.pixelId}');fbq('track','PageView');
-function l(){if(w._fbqLoaded)return;w._fbqLoaded=true;var s=d.createElement('script');s.async=true;s.src='https://connect.facebook.net/en_US/fbevents.js';d.head.appendChild(s)}
-if('requestIdleCallback' in w)requestIdleCallback(l,{timeout:2000});else addEventListener('load',l)})(window,document);
+var E=['pointerdown','keydown','touchstart'];
+function l(){if(w._fbqLoaded)return;w._fbqLoaded=true;E.forEach(function(e){removeEventListener(e,l,true)});removeEventListener('scroll',sc);var s=d.createElement('script');s.async=true;s.src='https://connect.facebook.net/en_US/fbevents.js';d.head.appendChild(s)}
+function sc(){if(w.scrollY>0)l()}
+w.phLoadPixel=l;
+${now ? 'l();' : `E.forEach(function(e){addEventListener(e,l,{capture:true,passive:true,once:true})});addEventListener('scroll',sc,{passive:true});
+function idle(){setTimeout(function(){if('requestIdleCallback' in w)requestIdleCallback(l,{timeout:2000});else l()},3500)}
+if(d.readyState==='complete')idle();else addEventListener('load',idle);`}})(window,document);
 </script>`;
 
 export function header(current = '') {
@@ -138,6 +146,7 @@ export function cartShell() {
  * @param {string} [o.bodyClass]
  * @param {string} [o.head]     Extra head HTML
  * @param {string} [o.tail]     Extra HTML after <main> (e.g. sticky bar)
+ * @param {boolean} [o.pixelNow] Load the Meta script immediately (conversion pages)
  */
 export function layout(o) {
   const url = `${SITE.url}${o.path}`;
@@ -163,7 +172,9 @@ export function layout(o) {
   <meta property="og:url" content="${url}">
   <meta property="og:image" content="${image}">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="icon" type="image/png" href="/images/logo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/images/favicon-48.png">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
   <link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="dns-prefetch" href="https://connect.facebook.net">
   ${o.head || ''}
@@ -178,7 +189,7 @@ export function layout(o) {
   ${o.tail || ''}
   ${footer()}
   ${cartShell()}
-  ${pixelScript}
+  ${pixelScript(o.pixelNow)}
   <script type="module" src="/src/js/${o.page}.js"></script>
 </body>
 </html>

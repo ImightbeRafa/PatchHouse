@@ -13,7 +13,7 @@ export function homePage(cat) {
   <div class="container hero-inner">
     <div class="hero-visual">
       <div class="hero-ring" aria-hidden="true"></div>
-      <img class="hero-packs" src="/images/hero-packs-900.webp" srcset="/images/hero-packs-600.webp 600w, /images/hero-packs-900.webp 900w, /images/hero-packs.webp 1500w" sizes="(min-width: 900px) 760px, 100vw" alt="Los seis parches PatchHouse: Focus, GLP-1, Energy, Stress Relief, Dopamine y NAD+" width="1580" height="909" fetchpriority="high">
+      <img class="hero-packs" src="/images/hero-packs-900.webp" srcset="/images/hero-packs-600.webp 600w, /images/hero-packs-700.webp 700w, /images/hero-packs-900.webp 900w, /images/hero-packs.webp 1500w" sizes="(min-width: 900px) 760px, 100vw" alt="Los seis parches PatchHouse: Focus, GLP-1, Energy, Stress Relief, Dopamine y NAD+" width="1580" height="909" fetchpriority="high">
       <span class="float-chip c1"><b>30</b> parches · 1 mes</span>
       <span class="float-chip c2">Desde <b>${formatCRC(lowest)}</b></span>
       <span class="float-chip c3">Pagá con <b>SINPE Móvil</b></span>
@@ -139,6 +139,6 @@ ${trustStrip()}
     main,
     page: 'home',
     jsonld,
-    head: '<link rel="preload" as="image" type="image/webp" href="/images/hero-packs-900.webp" imagesrcset="/images/hero-packs-600.webp 600w, /images/hero-packs-900.webp 900w, /images/hero-packs.webp 1500w" imagesizes="(min-width: 900px) 760px, 100vw" fetchpriority="high">'
+    head: '<link rel="preload" as="image" type="image/webp" href="/images/hero-packs-900.webp" imagesrcset="/images/hero-packs-600.webp 600w, /images/hero-packs-700.webp 700w, /images/hero-packs-900.webp 900w, /images/hero-packs.webp 1500w" imagesizes="(min-width: 900px) 760px, 100vw" fetchpriority="high">'
   });
 }

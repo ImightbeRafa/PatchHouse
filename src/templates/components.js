@@ -56,14 +56,14 @@ export const REELS = [
   { src: '/images/vid3.mp4', poster: '/images/vid3-poster.webp', title: 'Bienestar sin complicarlo', sub: 'Tu rutina, sin pastillas' }
 ];
 
-/** Vertical (9:16) videos: poster only until visible, muted autoplay, tap speaker for sound. */
+/** Vertical (9:16) videos: poster set by core.js when the reel gets near (data-poster), video only when visible. */
 export function reels() {
   return `<div class="reels-wrap">
   <button class="reels-nav prev" type="button" aria-label="Videos anteriores" data-reels-prev>‹</button>
   <button class="reels-nav next" type="button" aria-label="Más videos" data-reels-next>›</button>
   <div class="reels" data-reels>${REELS.map((r, i) => `
   <figure class="reel">
-    <video muted loop playsinline preload="none" poster="${r.poster}" data-src="${r.src}" aria-label="${esc(r.title)}"></video>
+    <video muted loop playsinline preload="none" width="540" height="960" data-poster="${r.poster}" data-src="${r.src}" aria-label="${esc(r.title)}"></video>
     <button class="sound" type="button" aria-label="Activar sonido" aria-pressed="false" data-sound>${icons.sound}</button>
     <figcaption>${esc(r.title)}<br><span style="font-weight:500;opacity:.85">${esc(r.sub)}</span></figcaption>
   </figure>`).join('')}</div>
@@ -90,7 +90,7 @@ export function stepCards(steps) {
 
 export function trustStrip() {
   const items = [
-    ['truck', 'Envío gratis desde ${formatCRC(FREE_SHIPPING_FROM)}', `A todo el país · ${SITE.deliveryDays}`],
+    ['truck', `Envío gratis desde ${formatCRC(FREE_SHIPPING_FROM)}`, `A todo el país · ${SITE.deliveryDays}`],
     ['lock', 'Pagá como prefieras', 'SINPE Móvil o tarjeta'],
     ['leaf', '100% vegano', 'Libre de crueldad animal'],
     ['chat', 'Atención por WhatsApp', SITE.whatsappDisplay]

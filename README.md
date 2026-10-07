@@ -1,6 +1,6 @@
 # PatchHouse.CR
 
-Tienda online de parches transdérmicos para Costa Rica. Multi-página (home, página por producto, carrito, checkout), vanilla JS + Vite, funciones serverless en Vercel.
+Tienda online de parches transdérmicos para Costa Rica. Multi-página (home, página por producto, carrito, checkout), vanilla JS + Vite, API en `api/` (handlers estilo serverless). Producción: VPS (Cloudflare → Caddy).
 
 ## Comandos
 
@@ -24,7 +24,7 @@ scripts/build-pages.js Genera todo el HTML desde src/templates (los .html genera
 src/templates/         layout (header/footer/drawer) + páginas: home, producto, checkout, pedido, políticas
 src/js/                core.js (carrito, drawer, videos) + un entry por página
 src/styles/            site.css (sistema de diseño) + pdp.css + checkout.css
-api/                   Funciones Vercel: config, sinpe/create-order, tilopay/{create-payment,confirm,webhook}
+api/                   Handlers de la API: config, sinpe/create-order, tilopay/{create-payment,confirm,webhook}
 api/_lib/              Helpers (no son funciones): pedidos, firma, emails, Betsy, Meta
 assets-src/            Imágenes y videos originales (no se publican)
 public/                Imágenes optimizadas, fuente, videos
@@ -47,11 +47,12 @@ Para **editar un producto, precio, combo o FAQ** tocá `shared/catalog.js` y cor
 - Parches a ₡9.900 c/u; descuentos solo en combos (`shared/catalog.js`).
 - **Envío gratis desde ₡25.000** de subtotal (`FREE_SHIPPING_FROM`); si no, ₡3.000. El servidor usa la misma regla.
 
-## Despliegue (Vercel)
+## Despliegue (VPS)
 
 1. Variables de entorno: ver `.env.example` (nuevas: `SINPE_PHONE`, `SINPE_HOLDER`; opcionales: `ORDER_SIGNING_SECRET`, `TILOPAY_REDIRECT_FULFILL`).
-2. Confirmá que el webhook de Tilopay apunta a `https://patchhouse.shopping/api/tilopay/webhook` y que `TILOPAY_WEBHOOK_SECRET` coincide.
-3. Cambiar stock (`VITE_SOLD_OUT`) requiere un nuevo deploy: se lee al construir las páginas.
+2. Confirmá que el webhook de Tilopay apunta a `https://www.patchhouse.shopping/api/tilopay/webhook` (con **www**: el dominio sin www redirige con 301 y un POST no sobrevive la redirección) y que `TILOPAY_WEBHOOK_SECRET` coincide.
+3. El servidor debe correr con `NODE_ENV=production`: así `ORDER_DRY_RUN` nunca puede apagar los pedidos reales.
+4. Cambiar stock (`VITE_SOLD_OUT`) requiere un nuevo deploy: se lee al construir las páginas.
 
 ## Reseñas reales
 

@@ -295,7 +295,7 @@ for (const [k, x, y, h, deg] of HERO) heroLayers.push(...await layer(k, h, deg, 
 const hero = await sharp({ create: { width: 1580, height: 1080, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).composite(heroLayers).png().toBuffer();
 const heroTrim = await sharp(hero).trim({ threshold: 1 }).png().toBuffer();
 await sharp(heroTrim).webp({ quality: 86, alphaQuality: 90, effort: 5 }).toFile(path.join(OUT, 'hero-packs.webp'));
-for (const w of [600, 900]) await sharp(heroTrim).resize({ width: w }).webp({ quality: 82, alphaQuality: 85, effort: 6 }).toFile(path.join(OUT, `hero-packs-${w}.webp`));
+for (const w of [600, 700, 900]) await sharp(heroTrim).resize({ width: w }).webp({ quality: 82, alphaQuality: 85, effort: 6 }).toFile(path.join(OUT, `hero-packs-${w}.webp`));
 console.log('  hero-packs');
 
 console.log('Infographics...');

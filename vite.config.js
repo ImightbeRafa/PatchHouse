@@ -27,7 +27,7 @@ function htmlInputs() {
 }
 
 /**
- * Dev-only: serves /api/* from the same serverless handlers Vercel runs, so
+ * Dev-only: serves /api/* from the same handlers production runs, so
  * `npm run dev` exercises the real checkout code (SINPE, config, Tilopay create-payment).
  * Also regenerates pages when templates or the shared catalog change.
  */

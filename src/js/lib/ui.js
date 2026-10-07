@@ -66,6 +66,8 @@ export function bindLineControls(root, cart) {
 
 export function track(name, params, options) {
   try {
+    // Conversion events load the deferred Meta script now (it is queued by the stub either way).
+    if (name !== 'ViewContent' && typeof window.phLoadPixel === 'function') window.phLoadPixel();
     if (typeof window.fbq === 'function') {
       if (options) window.fbq('track', name, params, options);
       else if (params) window.fbq('track', name, params);
