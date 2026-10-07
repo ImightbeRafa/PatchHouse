@@ -7,7 +7,7 @@
  */
 import { sendOrderEmail } from '../_lib/email.js';
 import { sendOrderToBetsyWithRetry } from '../_lib/betsy.js';
-import { sendMetaEvent, generateEventId } from '../_lib/meta.js';
+import { sendMetaEvent, generateEventId, checkoutEventId } from '../_lib/meta.js';
 import { catalog, normalizeTrustedOrder } from '../_lib/order.js';
 import { guardPost, parseBody, appUrl, newOrderId, ORDER_ID_RE, sinpeConfig, isDryRun } from '../_lib/http.js';
 import { validateCheckout, sanitizeCustomer } from '../../shared/validate.js';
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     }
 
     const customer = sanitizeCustomer(body);
-    const errors = validateCheckout(customer);
+    const errors = validateCheckout(customer, { emailRequired: false });
     if (Object.keys(errors).length) {
       return res.status(400).json({ error: 'Invalid fields', message: 'Faltan datos requeridos para continuar.', errors, missingFields: Object.keys(errors) });
     }
@@ -52,6 +52,14 @@ export default async function handler(req, res) {
     if (isDryRun()) {
       console.log('[SINPE][dry-run] order not sent anywhere:', orderId, order.total);
     } else {
+      const contents = {
+        currency: 'CRC', content_type: 'product',
+        content_ids: order.items.map((i) => i.key),
+        num_items: order.items.reduce((n, i) => n + i.qty, 0)
+      };
+      // Server copy of the checkout page's InitiateCheckout (same event_id, Meta keeps one).
+      sendMetaEvent('InitiateCheckout', checkoutEventId(body.meta, orderId), order, req, { ...contents, value: order.subtotal }, `${site}/checkout/`, body.meta)
+        .catch((e) => console.warn('[SINPE] Meta InitiateCheckout failed:', e && e.message));
       const [betsy, email, meta] = await Promise.allSettled([
         sendOrderToBetsyWithRetry(order),
         sendOrderEmail(order, { sinpe }),

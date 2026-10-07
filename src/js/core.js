@@ -63,7 +63,9 @@ function renderDrawer() {
   foot.hidden = false;
   foot.innerHTML = `
     ${s.savings ? `<div class="drawer-total" style="font-size:14px;font-weight:700;color:var(--ok)"><span>Ahorrás</span><span>${formatCRC(s.savings)}</span></div>` : ''}
-    <div class="drawer-total"><span>Subtotal</span><span>${formatCRC(s.subtotal)}</span></div>
+    <div class="drawer-total sub"><span>Subtotal</span><span>${formatCRC(s.subtotal)}</span></div>
+    <div class="drawer-total sub"><span>Envío</span><span>${s.shipping ? formatCRC(s.shipping) : '<b class="free">Gratis</b>'}</span></div>
+    <div class="drawer-total"><span>Total</span><span>${formatCRC(s.total)}</span></div>
     ${shippingProgress(s.subtotal)}
     <a class="btn btn-cta btn-lg btn-block" href="/checkout/">Finalizar compra</a>`;
 }

@@ -1,13 +1,17 @@
 import { sendOrderEmail, sendPaymentProcessingAlert } from './email.js';
 import { sendOrderToBetsyWithRetry } from './betsy.js';
-import { sendMetaEvent, generateEventId } from './meta.js';
+import { sendMetaEvent, purchaseEventId } from './meta.js';
 import { normalizeTrustedOrder } from './order.js';
 import { isDryRun } from './http.js';
 
+// One fulfilment per order. Keyed by order id only: the success-page redirect and the Tilopay webhook
+// can report the transaction under different ids. `inFlight` makes a redirect and a webhook that arrive
+// at the same moment share one run (one CRM order, one email, one Meta Purchase).
 const processedPayments = new Set();
+const inFlight = new Map();
 
-function getPaymentKey(orderId, transactionId) {
-  return `${orderId || ''}_${transactionId || ''}`;
+function getPaymentKey(orderId) {
+  return String(orderId || '');
 }
 
 function validatePaidOrder(order) {
@@ -25,9 +29,20 @@ function validatePaidOrder(order) {
   return missing;
 }
 
-export async function processPaidOrder({ order, transactionId, req, source = 'unknown' }) {
+export async function processPaidOrder(args) {
+  const key = getPaymentKey(normalizeTrustedOrder(args.order).orderId);
+  if (key && inFlight.has(key)) {
+    const shared = await inFlight.get(key);
+    return shared.success ? { ...shared, alreadyProcessed: true } : shared;
+  }
+  const run = fulfil(args);
+  if (key) inFlight.set(key, run);
+  try { return await run; } finally { inFlight.delete(key); }
+}
+
+async function fulfil({ order, transactionId, req, source = 'unknown' }) {
   const normalized = normalizeTrustedOrder(order);
-  const key = getPaymentKey(normalized.orderId, transactionId);
+  const key = getPaymentKey(normalized.orderId);
 
   if (processedPayments.has(key)) {
     return {
@@ -101,7 +116,7 @@ export async function processPaidOrder({ order, transactionId, req, source = 'un
   // The webhook request comes from Tilopay's servers: its IP/user agent are not the shopper's.
   // There the shopper's context comes from the signed snapshot (paidOrder.m) instead.
   const shopperReq = source === 'webhook' ? null : req;
-  const metaEventId = generateEventId('purchase', paidOrder.orderId, transactionId);
+  const metaEventId = purchaseEventId(paidOrder.orderId);
   const contentIds = (paidOrder.items || []).map(i => i.key).filter(Boolean);
   const numItems = (paidOrder.items || []).reduce((sum, i) => sum + (parseInt(i.qty, 10) || 0), 0);
 

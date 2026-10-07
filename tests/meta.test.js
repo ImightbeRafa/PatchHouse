@@ -86,3 +86,19 @@ test('city/state are normalized before hashing (no accents/spaces)', async () =>
   assert.equal(ev.user_data.ph[0], h('50688881234'));
   assert.equal(ev.event_source_url, 'https://www.patchhouse.shopping');
 });
+
+test('one Purchase per order: concurrent redirect + webhook share a single fulfilment', async () => {
+  const { processPaidOrder } = await import('../api/_lib/fulfillment.js');
+  const { purchaseEventId } = await import('../api/_lib/meta.js');
+  const prev = process.env.ORDER_DRY_RUN;
+  process.env.ORDER_DRY_RUN = 'true';
+  const order = { orderId: 'ORD-1791071433000-4242', nombre: 'Maria Fernandez', telefono: '8888-1234', email: 'm@example.com', provincia: 'Heredia', canton: 'Heredia', distrito: 'San Rafael', direccion: '200 m norte de la iglesia', items: [{ key: 'focus', qty: 1 }] };
+  const [a, b] = await Promise.all([
+    processPaidOrder({ order, transactionId: 'T1', source: 'redirect-verified' }),
+    processPaidOrder({ order, transactionId: '998877', source: 'webhook' })
+  ]);
+  process.env.ORDER_DRY_RUN = prev;
+  assert.equal(a.success && b.success, true);
+  assert.equal([a, b].filter((r) => r.alreadyProcessed).length, 1);
+  assert.equal(purchaseEventId(order.orderId), 'purchase_ORD-1791071433000-4242');
+});

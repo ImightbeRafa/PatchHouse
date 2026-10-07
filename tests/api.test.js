@@ -85,7 +85,7 @@ test('card: create-payment (sandbox) returns a signed redirect that confirm acce
   const confirmed = await call(confirm, { body: { orderId: url.searchParams.get('orderId'), transactionId: 'T1', code: '1', returnData: url.searchParams.get('returnData') } });
   assert.equal(confirmed.status, 200);
   assert.equal(confirmed.body.total, 12900);
-  assert.equal(confirmed.body.metaEventId, `purchase_${created.body.orderId}_T1`);
+  assert.equal(confirmed.body.metaEventId, `purchase_${created.body.orderId}`); // one Purchase id per order
 });
 
 test('card: confirm refuses forged redirects (no signature, tampered data, declined code)', async () => {
@@ -93,4 +93,22 @@ test('card: confirm refuses forged redirects (no signature, tampered data, decli
   assert.equal((await call(confirm, { body: { orderId: 'ORD-1', code: '1', returnData: legacy } })).status, 400);
   assert.equal((await call(confirm, { body: { orderId: 'ORD-1', code: '1' } })).status, 400);
   assert.equal((await call(confirm, { body: { orderId: 'ORD-1', code: '0', returnData: signOrder({}) } })).status, 400);
+});
+
+test('email is optional for SINPE, required for card (Tilopay needs it)', async () => {
+  const { email, ...noEmail } = customer;
+  const s = await call(sinpe, { body: { ...noEmail, items: [{ key: 'focus', qty: 1 }] } });
+  assert.equal(s.status, 200);
+  const c = await call(card, { body: { ...noEmail, items: [{ key: 'focus', qty: 1 }] } });
+  assert.equal(c.status, 400);
+  assert.ok(c.body.errors.email);
+  const bad = await call(sinpe, { body: { ...noEmail, email: 'not-an-email', items: [{ key: 'focus', qty: 1 }] } });
+  assert.equal(bad.status, 400); // optional, but still checked when given
+});
+
+test('card: InitiateCheckout reuses the event id the checkout page fired (Meta dedup)', async () => {
+  const c = await call(card, { body: { ...customer, items: [{ key: 'focus', qty: 1 }], meta: { icEventId: 'ic_mgf3k2_ab12cd34' } } });
+  assert.equal(c.body.metaEventId, 'ic_mgf3k2_ab12cd34');
+  const forged = await call(card, { body: { ...customer, items: [{ key: 'focus', qty: 1 }], meta: { icEventId: 'purchase_x' } } });
+  assert.match(forged.body.metaEventId, /^ic_ORD-/);
 });

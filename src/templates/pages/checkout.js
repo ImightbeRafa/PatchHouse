@@ -33,7 +33,7 @@ export function checkoutPage() {
           ${field('nombre', 'Nombre completo', '<input id="nombre" name="nombre" type="text" autocomplete="name" placeholder="María Fernández" required aria-describedby="nombre-error">')}
           ${field('telefono', 'Teléfono', '<input id="telefono" name="telefono" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="8888-8888" required aria-describedby="telefono-error">')}
         </div>
-        ${field('email', 'Correo electrónico', '<input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="maria@correo.com" required aria-describedby="email-error">', 'Te enviamos la confirmación de tu pedido aquí.')}
+        ${field('email', 'Correo electrónico <span class="opt-note" data-email-optional>(opcional)</span>', '<input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="maria@correo.com" aria-describedby="email-error">', 'Te enviamos la confirmación de tu pedido aquí.')}
       </fieldset>
 
       <fieldset class="group">

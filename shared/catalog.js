@@ -339,6 +339,13 @@ export const FAQ = [
  * Shape per product key:
  *   { author:'María F.', city:'San José', rating:5, title:'…', text:'…', date:'2026-09-30', verified:false }
  */
+/** "+ envío ₡3.000 · Gratis desde ₡25.000", or "Envío gratis incluido" when the amount already qualifies. */
+export function shippingNote(amount) {
+  return amount >= FREE_SHIPPING_FROM
+    ? 'Envío gratis incluido'
+    : `+ envío ${formatCRC(SHIPPING_COST)} · Gratis desde ${formatCRC(FREE_SHIPPING_FROM)}`;
+}
+
 export const REVIEWS_ARE_PLACEHOLDERS = true;
 
 export const REVIEWS = {

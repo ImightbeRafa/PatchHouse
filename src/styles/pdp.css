@@ -89,6 +89,10 @@
 .price-box { display: grid; gap: 2px; }
 .price-box .price b { font-size: 32px; }
 .price-box > small { color: var(--muted); font-size: 13px; }
+.ship-note { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 14px; font-weight: 600; color: var(--text); }
+.ship-note svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
+.ship-note.free { color: var(--ok); }
+.ship-note.free svg { color: currentColor; }
 .bullets { display: grid; gap: 8px; }
 .bullets li { position: relative; padding-left: 26px; font-size: 15px; line-height: 1.45; }
 .bullets li::before { content: '✓'; position: absolute; left: 0; color: var(--ok); font-weight: 800; }
@@ -162,4 +166,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .sb-info b { color: var(--ink); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-info span { font-weight: 800; color: var(--ink); }
 .sticky-bar .btn { flex: none; }
+/* room so the bar never covers the end of the page */
+@media (max-width: 899px) { body.has-sticky-bar { padding-bottom: calc(68px + env(safe-area-inset-bottom)); } }
 @media (min-width: 900px) { .sticky-bar { display: none; } body.has-sticky .wa-float { bottom: 14px; } }

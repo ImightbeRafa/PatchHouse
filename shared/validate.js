@@ -30,8 +30,12 @@ export function formatPhone(value) {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/** @returns {Record<string,string>} field -> message (empty object when valid) */
-export function validateCheckout(data = {}) {
+/**
+ * @param {object} [opts]
+ * @param {boolean} [opts.emailRequired=true] SINPE orders are confirmed by WhatsApp, so email is optional there; cards need it (Tilopay).
+ * @returns {Record<string,string>} field -> message (empty object when valid)
+ */
+export function validateCheckout(data = {}, { emailRequired = true } = {}) {
   const errors = {};
   const get = (k) => String(data[k] ?? '').trim();
 
@@ -42,7 +46,7 @@ export function validateCheckout(data = {}) {
   if (!get('telefono')) errors.telefono = 'Escribí tu número de teléfono.';
   else if (normalizePhone(data.telefono).length !== 8) errors.telefono = 'Usá un número de 8 dígitos, ej. 8888-8888.';
 
-  if (!get('email')) errors.email = 'Escribí tu correo electrónico.';
+  if (!get('email')) { if (emailRequired) errors.email = 'Escribí tu correo electrónico para pagar con tarjeta.'; }
   else if (!EMAIL_RE.test(get('email'))) errors.email = 'Revisá el correo, parece incompleto.';
 
   if (!get('provincia')) errors.provincia = 'Seleccioná tu provincia.';

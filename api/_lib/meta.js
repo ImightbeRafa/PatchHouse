@@ -145,6 +145,17 @@ export function generateEventId(prefix, orderId, extra) {
   return parts;
 }
 
+/** One Purchase per order: the redirect and the webhook can see different transaction ids, so the id is the order's. */
+export const purchaseEventId = (orderId) => generateEventId('purchase', orderId);
+
+const IC_EVENT_ID_RE = /^ic_[a-z0-9]{4,16}_[a-z0-9]{4,16}$/;
+
+/** InitiateCheckout id: the one the checkout page already fired in the browser (dedup), else derived from the order. */
+export function checkoutEventId(posted, orderId) {
+  const id = posted && typeof posted === 'object' ? posted.icEventId : undefined;
+  return typeof id === 'string' && IC_EVENT_ID_RE.test(id) ? id : generateEventId('ic', orderId);
+}
+
 /**
  * Send an event to Meta Conversions API.
  *

@@ -10,7 +10,7 @@ import { sendPaymentProcessingAlert, sendPendingOrderEmail } from '../_lib/email
 import { processPaidOrder } from '../_lib/fulfillment.js';
 import { normalizeTrustedOrder } from '../_lib/order.js';
 import { verifyOrderToken } from '../_lib/sign.js';
-import { generateEventId } from '../_lib/meta.js';
+import { purchaseEventId } from '../_lib/meta.js';
 import { guardPost, parseBody, isDryRun } from '../_lib/http.js';
 import { verifyTilopayRedirect } from '../_lib/tilopay.js';
 
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       orderId: order.orderId,
       total: order.total,
       items: order.items.map(({ key, name, qty, lineTotal }) => ({ key, name, qty, lineTotal })),
-      metaEventId: generateEventId('purchase', order.orderId, transactionId)
+      metaEventId: purchaseEventId(order.orderId)
     };
 
     // Tilopay signs the redirect with an HMAC only it and we can compute (see api/_lib/tilopay.js).

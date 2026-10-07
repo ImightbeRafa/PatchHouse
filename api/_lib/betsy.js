@@ -49,7 +49,7 @@ export async function sendOrderToBetsy(orderData) {
       customer: {
         name: orderData.nombre,
         phone: orderData.telefono,
-        email: orderData.email,
+        ...(orderData.email ? { email: orderData.email } : {}), // optional for SINPE; Betsy rejects ""
       },
       product: {
         name: productName,

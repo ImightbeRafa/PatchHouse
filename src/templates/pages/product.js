@@ -1,4 +1,4 @@
-import { SITE, FAQ, COMMON_USAGE, REVIEWS, REVIEWS_ARE_PLACEHOLDERS, reviewSummary, formatCRC, SHIPPING_COST, SINGLE_PRICE, FREE_SHIPPING_FROM } from '../../../shared/catalog.js';
+import { SITE, FAQ, COMMON_USAGE, REVIEWS, REVIEWS_ARE_PLACEHOLDERS, reviewSummary, formatCRC, shippingNote, SHIPPING_COST, SINGLE_PRICE, FREE_SHIPPING_FROM } from '../../../shared/catalog.js';
 import { layout, esc, faqList, faqJsonLd, icons } from '../layout.js';
 import { productCard, productImage, priceBlock, reels, benefitCards, stepCards } from '../components.js';
 
@@ -141,7 +141,7 @@ export function productPage(p, cat) {
       <h1>${esc(p.name)}</h1>
       ${summary ? `<a class="rating" href="#resenas"><span class="stars" aria-hidden="true">${stars(summary.average)}</span> ${String(summary.average).replace('.', ',')} · ${summary.count} reseñas</a>` : ''}
       <p class="result">${esc(result)}</p>
-      <div class="price-box" data-price-box>${priceBlock(p, { unit: false })}<small>${isCombo ? esc(p.unitLabel) : 'Paquete de 30 parches · 1 mes de uso'}</small></div>
+      <div class="price-box" data-price-box>${priceBlock(p, { unit: false })}<small>${isCombo ? esc(p.unitLabel) : 'Paquete de 30 parches · 1 mes de uso'}</small><p class="ship-note${startPrice >= FREE_SHIPPING_FROM ? ' free' : ''}" data-ship-note>${icons.truck}<span>${esc(shippingNote(startPrice))}</span></p></div>
       <ul class="bullets">${bullets}</ul>
       ${buy}
       ${trust}

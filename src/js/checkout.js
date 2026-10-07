@@ -20,6 +20,10 @@ const CLIENT_ORDER_KEY = 'ph_checkout_order';
 const FIELDS = ['nombre', 'telefono', 'email', 'provincia', 'canton', 'distrito', 'direccion', 'comentarios'];
 
 let methods = { sinpe: true, card: true };
+// InitiateCheckout fires once per checkout page view (browser now; the server repeats it with the
+// same event_id when the order is submitted, so Meta deduplicates the pair).
+const IC_EVENT_ID = `ic_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+let icTracked = false;
 let submitting = false;
 let attempted = false;
 
@@ -43,12 +47,19 @@ function renderSummary() {
   $('[data-summary-mini]').textContent = formatCRC(s.total);
   $('[data-bar-total]').textContent = formatCRC(s.total);
   updateSubmitLabel();
+  if (!icTracked) {
+    icTracked = true;
+    track('InitiateCheckout', { ...orderContents(s.items), value: s.subtotal, currency: 'CRC' }, { eventID: IC_EVENT_ID });
+  }
 }
 
 function method() {
   const checked = $('input[name="metodo"]:checked', form);
   return checked ? checked.value : 'sinpe';
 }
+
+/** Email is optional for SINPE (confirmed by WhatsApp) and required for cards (Tilopay). Same rule on the server. */
+const rules = () => ({ emailRequired: method() === 'card' });
 
 function updateSubmitLabel() {
   const total = formatCRC(cart.summary().total);
@@ -67,6 +78,10 @@ function syncMethod() {
   $$('.pay-opt', form).forEach((o) => o.classList.toggle('on', o.dataset.method === m));
   $('[data-help-sinpe]').hidden = m !== 'sinpe';
   $('[data-help-card]').hidden = m !== 'card';
+  const email = fieldEl('email');
+  if (email) email.required = m === 'card';
+  $$('[data-email-optional]', form).forEach((el) => { el.hidden = m === 'card'; });
+  if (attempted) setError('email', validateCheckout(readCustomer().customer, rules()).email || '');
   updateSubmitLabel();
 }
 
@@ -130,7 +145,7 @@ function readCustomer() {
 
 form.addEventListener('input', (e) => {
   const name = e.target.name;
-  if (name && attempted) setError(name, validateCheckout(readCustomer().customer)[name] || '');
+  if (name && attempted) setError(name, validateCheckout(readCustomer().customer, rules())[name] || '');
   else if (name && $(`[data-field="${name}"]`, form)?.classList.contains('invalid')) setError(name, '');
   if (alertBox && !alertBox.hidden) showAlert('');
   saveCustomer();
@@ -138,7 +153,7 @@ form.addEventListener('input', (e) => {
 form.addEventListener('change', (e) => { if (e.target.name === 'metodo') syncMethod(); });
 form.addEventListener('focusout', (e) => {
   if (e.target.name === 'telefono' && e.target.value.trim()) e.target.value = formatPhone(e.target.value);
-  if (attempted && e.target.name) setError(e.target.name, validateCheckout(readCustomer().customer)[e.target.name] || '');
+  if (attempted && e.target.name) setError(e.target.name, validateCheckout(readCustomer().customer, rules())[e.target.name] || '');
 });
 
 /* ---------- remember contact details (convenience, never payment data) ---------- */
@@ -189,7 +204,7 @@ form.addEventListener('submit', async (e) => {
   if (!summary.items.length) { renderSummary(); return; }
 
   const { raw, customer } = readCustomer();
-  const errors = validateCheckout(customer);
+  const errors = validateCheckout(customer, rules());
   if (Object.keys(errors).length) {
     showErrors(errors);
     showAlert('Revisá los campos marcados para continuar.');
@@ -202,7 +217,7 @@ form.addEventListener('submit', async (e) => {
     website: raw.website || '',
     items: summary.items.map(({ key, qty }) => ({ key, qty })),
     clientOrderId: clientOrderId(customer, summary.total),
-    meta: metaIds()
+    meta: { ...metaIds(), icEventId: IC_EVENT_ID }
   };
 
   setBusy(true);
@@ -231,7 +246,6 @@ form.addEventListener('submit', async (e) => {
     if (m === 'card') {
       // https only; http://localhost is the sandbox redirect used by `npm run dev`
       if (!/^(https:\/\/|http:\/\/localhost[:/])/i.test(String(data.paymentUrl || ''))) throw new Error('Missing payment URL');
-      track('InitiateCheckout', { ...contents, value: summary.total }, data.metaEventId ? { eventID: data.metaEventId } : undefined);
       storageSet(ORDER_KEY, JSON.stringify({ method: 'card', orderId: data.orderId, total: data.total, items: summary.items, savedAt: Date.now() }));
       await afterTracking();
       window.location.assign(data.paymentUrl); // cart is cleared on /success.html once the payment is approved

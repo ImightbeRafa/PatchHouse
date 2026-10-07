@@ -2,6 +2,7 @@
 import './core.js';
 import { catalog } from './lib/store.js';
 import { $, $$, formatCRC, track } from './lib/ui.js';
+import { shippingNote, FREE_SHIPPING_FROM } from '../../shared/catalog.js';
 
 const section = $('.pdp[data-product]');
 const key = section?.dataset.product;
@@ -66,6 +67,7 @@ const stickyBtn = $('[data-sticky-add]');
 const priceEl = $('[data-price-box] .price');
 const atcPrice = $('[data-atc-price]');
 const stickyPrice = $('[data-sticky-price]');
+const shipNote = $('[data-ship-note]');
 const stickyName = $('[data-sticky] .sb-info b');
 const qtyOut = $('[data-qty-out]');
 const minus = $('[data-qty-minus]');
@@ -81,6 +83,10 @@ function render() {
   if (buyNow) { buyNow.dataset.buyNow = selected; buyNow.dataset.qty = String(qty); }
   if (atcPrice) atcPrice.textContent = formatCRC(total);
   if (stickyPrice) stickyPrice.textContent = formatCRC(total);
+  if (shipNote) {
+    shipNote.lastElementChild.textContent = shippingNote(total);
+    shipNote.classList.toggle('free', total >= FREE_SHIPPING_FROM);
+  }
   if (stickyName) stickyName.textContent = catalog.products[selected]?.short || '';
   if (priceEl) {
     const save = compare - total;
@@ -105,11 +111,13 @@ if (product) render();
 
 stickyBtn?.addEventListener('click', () => atc?.click());
 
-/* ---------- sticky buy bar (appears when the main button leaves the screen) ---------- */
+/* ---------- sticky buy bar (phones): visible whenever the main button is off screen ----------
+ * On a 375 px phone the main button is ~2 screens down, so the bar also shows BEFORE it is reached.
+ * It clicks #atc, so the cart + AddToCart event come from the exact same handler (fires once). */
 const sticky = $('[data-sticky]');
 if (sticky && atc && 'IntersectionObserver' in window) {
   const io = new IntersectionObserver(([entry]) => {
-    const pastIt = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+    const pastIt = !entry.isIntersecting;
     sticky.classList.toggle('show', pastIt);
     sticky.setAttribute('aria-hidden', String(!pastIt));
     if (stickyBtn) stickyBtn.tabIndex = pastIt ? 0 : -1;

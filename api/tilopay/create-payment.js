@@ -2,7 +2,7 @@
  * PatchHouse – Tilopay: create a hosted payment for the cart.
  * Prices are recomputed here from the shared catalog; the browser's totals are never trusted.
  */
-import { sendMetaEvent, generateEventId, browserContext, snapshotContext } from '../_lib/meta.js';
+import { sendMetaEvent, checkoutEventId, browserContext, snapshotContext } from '../_lib/meta.js';
 import { catalog } from '../_lib/order.js';
 import { signOrder, hasSigningSecret } from '../_lib/sign.js';
 import { guardPost, parseBody, appUrl, newOrderId, ORDER_ID_RE, cardConfig, isDryRun } from '../_lib/http.js';
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
     if (isDryRun()) {
       // Sandbox: skip Tilopay and send the browser straight to our own success page with a signed snapshot.
       const params = new URLSearchParams({ orderId, code: '1', 'tilopay-transaction': 'DRYRUN', returnData: signOrder(snapshot) });
-      return res.json({ success: true, orderId, metaEventId: generateEventId('ic', orderId), paymentUrl: `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/success.html?${params}`, total: priced.total, dryRun: true });
+      return res.json({ success: true, orderId, metaEventId: checkoutEventId(body.meta, orderId), paymentUrl: `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/success.html?${params}`, total: priced.total, dryRun: true });
     }
 
     const accessToken = await authenticateTilopay(baseUrl);
@@ -110,9 +110,9 @@ export default async function handler(req, res) {
     const paymentUrl = payment.urlPaymentForm || payment.url || payment.payment_url;
     if (!paymentUrl) throw new Error('No payment URL received from Tilopay');
 
-    const metaEventId = generateEventId('ic', orderId);
+    const metaEventId = checkoutEventId(body.meta, orderId);
     await sendMetaEvent('InitiateCheckout', metaEventId, customer, req, {
-      value: priced.total, currency: 'CRC', content_type: 'product',
+      value: priced.subtotal, currency: 'CRC', content_type: 'product',
       content_ids: priced.items.map((i) => i.key),
       num_items: priced.items.reduce((n, i) => n + i.qty, 0)
     }, `${site}/checkout/`, body.meta).catch(() => {});
