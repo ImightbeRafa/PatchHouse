@@ -23,13 +23,18 @@ export async function sendOrderToBetsy(orderData) {
     console.log('📤 [Betsy] Sending order to CRM:', orderData.orderId);
 
     const paymentMethod = orderData.paymentMethod || 'Tilopay';
-    const paymentStatus = orderData.paymentStatus === 'completed' ? 'PAGADO' : 'PENDIENTE';
+    const cardReview = orderData.cardReview === true;
+    const paymentStatus = cardReview
+      ? 'Pago tarjeta por verificar'
+      : orderData.paymentStatus === 'completed' ? 'PAGADO' : 'PENDIENTE';
     const transactionId = orderData.paymentId || orderData.transactionId || 'PENDING';
 
     const methodLabel = paymentMethod === 'SINPE Móvil' ? 'SINPE Móvil' : 'Tarjeta (Tilopay)';
-    const paymentComment = paymentStatus === 'PAGADO'
-      ? `Pago: ${methodLabel} - Estado: PAGADO - ID Transacción: ${transactionId}`
-      : `Pago: ${methodLabel} - Estado: PENDIENTE (verificar comprobante SINPE antes de despachar)`;
+    const paymentComment = cardReview
+      ? `Pago: ${methodLabel} - Estado: Pago tarjeta por verificar - ID Transacción: ${transactionId}`
+      : paymentStatus === 'PAGADO'
+        ? `Pago: ${methodLabel} - Estado: PAGADO - ID Transacción: ${transactionId}`
+        : `Pago: ${methodLabel} - Estado: PENDIENTE (verificar comprobante SINPE antes de despachar)`;
 
     const items = getOrderItems(orderData);
     const productLines = items.map(i => `${i.name} x${i.qty} — ${formatCRC(i.lineTotal)}`);
