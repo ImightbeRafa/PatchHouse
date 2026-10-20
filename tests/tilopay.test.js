@@ -34,6 +34,7 @@ test('OrderHash: valid signature verifies, any tampering fails', () => {
 });
 
 function call(handler, body) {
+  globalThis.__lastTx = body?.transactionId; // Tilopay echoes the redirect tpt as id_tilopay
   return new Promise((resolve) => {
     const res = { statusCode: 200, setHeader() {}, status(c) { this.statusCode = c; return this; }, json(d) { resolve({ status: this.statusCode, body: d }); return this; } };
     handler({ method: 'POST', body, headers: { host: 'localhost:3000' } }, res);
@@ -94,9 +95,9 @@ async function withLiveFulfillment(betsyMode, fn) {
   process.env.ORDER_NOTIFICATION_EMAIL = 'owner@example.com';
   delete process.env.META_CAPI_ACCESS_TOKEN;
   const consultRow = (payload) => {
-    if (betsyMode === 'declined') return { code: '0', amount: '36800.00', orderNumber: payload.orderNumber, response: 'Rechazada' };
-    if (betsyMode === 'mismatch') return { code: '1', amount: '1.00', orderNumber: payload.orderNumber };
-    return { code: '1', amount: '36800.00', orderNumber: payload.orderNumber, card: '4021', last: '5221' };
+    if (betsyMode === 'declined') return { code: '0', amount: '36800.00', id_tilopay: globalThis.__lastTx, orderNumber: payload.orderNumber, response: 'Rechazada' };
+    if (betsyMode === 'mismatch') return { code: '1', amount: '1.00', id_tilopay: globalThis.__lastTx, orderNumber: payload.orderNumber };
+    return { code: '1', amount: '36800.00', id_tilopay: globalThis.__lastTx, orderNumber: payload.orderNumber, card: '4021', last: '5221' };
   };
   globalThis.fetch = async (url, opts) => {
     const u = String(url);

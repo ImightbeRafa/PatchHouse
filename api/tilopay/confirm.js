@@ -132,7 +132,7 @@ export default async function handler(req, res) {
     if (!isDryRun()) {
       let rows;
       try {
-        rows = await consultTilopayOrder(order.orderId);
+        rows = await consultTilopayOrder(order.orderId, process.env, transactionId);
       } catch (err) {
         console.info('[Confirm] Tilopay consult unavailable', { orderNumber: order.orderId });
         const reviewed = await reviewApprovedOrder(
