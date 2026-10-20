@@ -90,7 +90,7 @@ export async function tilopayLogin(baseUrl, creds = process.env) {
  * POST /api/v1/consult. merchantId is sent empty, matching Tilopay's documented example.
  * Returns the response rows only (no card data is copied out).
  */
-export async function consultTilopayOrder(orderNumber, creds = process.env) {
+export async function consultTilopayOrder(orderNumber, creds = process.env, transactionId = '') {
   const baseUrl = String(creds.TILOPAY_BASE_URL || 'https://app.tilopay.com/api/v1').replace(/\/+$/, '');
   const token = await tilopayLogin(baseUrl, creds);
   const res = await fetch(`${baseUrl}/consult`, {
@@ -106,7 +106,7 @@ export async function consultTilopayOrder(orderNumber, creds = process.env) {
   if (!res.ok) throw new Error(`Tilopay consult failed: ${res.status}`);
   const data = await res.json();
   const rows = Array.isArray(data && data.response) ? data.response : [];
-  return rows.map((row) => ({
+  return rows.filter((row) => row && tilopayOrderMatches(row.orderNumber, orderNumber) && tilopayTransactionMatches(row, transactionId)).map((row) => ({
     code: String(row && row.code != null ? row.code : ''),
     amount: row && row.amount,
     orderNumber: row && row.orderNumber
@@ -120,4 +120,24 @@ export function verifyTilopayRedirect({ orderHash, tpt, orderNumber, amount, cod
   if (!creds.TILOPAY_API_KEY || !creds.TILOPAY_PASSWORD) return false;
   const expected = computeOrderHash({ tpt, orderNumber, amount, code: '1', auth, email }, creds);
   return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(given, 'hex'));
+}
+
+/**
+ * Tilopay can return our order number with a merchant prefix (e.g. PFC000830-ORDC-…).
+ * A row matches when it equals ours or is ours after a PFC<digits> prefix.
+ */
+export function tilopayOrderMatches(rowNumber, orderNumber) {
+  const row = String(rowNumber ?? '');
+  const id = String(orderNumber ?? '');
+  if (!row || !id) return false;
+  if (row === id) return true;
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^PFC\\d*-?${escaped}$`).test(row);
+}
+
+/** When Tilopay gave us a transaction id, the row must carry the same id_tilopay. */
+export function tilopayTransactionMatches(row, transactionId) {
+  const wanted = String(transactionId ?? '').trim();
+  if (!wanted) return true;
+  return String(row?.id_tilopay ?? '') === wanted;
 }
