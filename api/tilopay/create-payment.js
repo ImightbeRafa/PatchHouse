@@ -6,26 +6,12 @@ import { sendMetaEvent, checkoutEventId, browserContext, snapshotContext } from 
 import { catalog } from '../_lib/order.js';
 import { signOrder, hasSigningSecret } from '../_lib/sign.js';
 import { guardPost, parseBody, appUrl, newOrderId, ORDER_ID_RE, cardConfig, isDryRun } from '../_lib/http.js';
+import { rememberCardOrderId } from '../_lib/payment-attempts.js';
+import { tilopayLogin } from '../_lib/tilopay.js';
 import { validateCheckout, sanitizeCustomer } from '../../shared/validate.js';
 
 const withTimeout = (ms = 12000) => ({ signal: AbortSignal.timeout(ms) });
 const PROVINCE_STATES = { 'San José': 'SJ', 'Alajuela': 'A', 'Cartago': 'C', 'Heredia': 'H', 'Guanacaste': 'G', 'Puntarenas': 'P', 'Limón': 'L' };
-
-async function authenticateTilopay(baseUrl) {
-  const { TILOPAY_USER: apiuser, TILOPAY_PASSWORD: password } = process.env;
-  if (!apiuser || !password) throw new Error('Tilopay credentials not configured');
-
-  const res = await fetch(`${baseUrl}/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ apiuser, password }),
-    ...withTimeout()
-  });
-  if (!res.ok) throw new Error(`Tilopay login failed: ${res.status} ${await res.text()}`);
-  const data = await res.json();
-  if (!data.access_token) throw new Error('No access token in Tilopay response');
-  return data.access_token;
-}
 
 export default async function handler(req, res) {
   if (!guardPost(req, res)) return;
@@ -53,6 +39,7 @@ export default async function handler(req, res) {
     if (!hasSigningSecret()) throw new Error('Order signing secret is not configured');
 
     const orderId = ORDER_ID_RE.test(String(body.clientOrderId || '')) ? body.clientOrderId : newOrderId();
+    rememberCardOrderId(orderId);
     const baseUrl = process.env.TILOPAY_BASE_URL || 'https://app.tilopay.com/api/v1';
     const site = appUrl();
     const [firstName, ...rest] = customer.nombre.split(/\s+/);
@@ -77,7 +64,7 @@ export default async function handler(req, res) {
       return res.json({ success: true, orderId, metaEventId: checkoutEventId(body.meta, orderId), paymentUrl: `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/success.html?${params}`, total: priced.total, dryRun: true });
     }
 
-    const accessToken = await authenticateTilopay(baseUrl);
+    const accessToken = await tilopayLogin(baseUrl);
     const payRes = await fetch(`${baseUrl}/processPayment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },

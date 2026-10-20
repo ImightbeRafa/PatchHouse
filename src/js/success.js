@@ -4,8 +4,11 @@
  * to fulfill an approved payment from our signed returnData.
  */
 import './core.js';
+import { clearClientOrderId } from './lib/order-attempt.js';
 import { cart } from './lib/store.js';
 import { $, $$, track, orderContents } from './lib/ui.js';
+
+clearClientOrderId(sessionStorage);
 
 const states = $$('[data-state]');
 const show = (name) => states.forEach((s) => { s.hidden = s.dataset.state !== name; });
@@ -34,7 +37,7 @@ function done(summary, pending) {
   }
   document.title = 'Pedido recibido | PatchHouse.CR';
   cart.clear();
-  try { sessionStorage.removeItem('ph_checkout_order'); } catch { /* ignore */ }
+  clearClientOrderId(sessionStorage);
   show('success');
 }
 

@@ -9,7 +9,8 @@ import { sendOrderEmail } from '../_lib/email.js';
 import { sendOrderToBetsyWithRetry } from '../_lib/betsy.js';
 import { sendMetaEvent, generateEventId, checkoutEventId } from '../_lib/meta.js';
 import { catalog, normalizeTrustedOrder } from '../_lib/order.js';
-import { guardPost, parseBody, appUrl, newOrderId, ORDER_ID_RE, sinpeConfig, isDryRun } from '../_lib/http.js';
+import { guardPost, parseBody, appUrl, sinpeConfig, isDryRun } from '../_lib/http.js';
+import { allocateSinpeOrderId } from '../_lib/payment-attempts.js';
 import { validateCheckout, sanitizeCustomer } from '../../shared/validate.js';
 
 export default async function handler(req, res) {
@@ -38,7 +39,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No valid products', message: 'Tu carrito no tiene productos disponibles.' });
     }
 
-    const orderId = ORDER_ID_RE.test(String(body.clientOrderId || '')) ? body.clientOrderId : newOrderId();
+    const orderId = allocateSinpeOrderId(body.clientOrderId);
     const order = normalizeTrustedOrder({
       orderId, ...customer, items: rawItems,
       paymentMethod: 'SINPE Móvil', paymentStatus: 'pending',

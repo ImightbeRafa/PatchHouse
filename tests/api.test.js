@@ -106,6 +106,27 @@ test('email is optional for SINPE, required for card (Tilopay needs it)', async 
   assert.equal(bad.status, 400); // optional, but still checked when given
 });
 
+test('declined card id is replaced for SINPE; a repeated click keeps one id', async () => {
+  const cardId = 'ORD-1791071433600-4401';
+  const firstCard = await call(card, { body: { ...customer, items: [{ key: 'focus', qty: 1 }], clientOrderId: cardId } });
+  const secondCard = await call(card, { body: { ...customer, items: [{ key: 'focus', qty: 1 }], clientOrderId: cardId } });
+  assert.equal(firstCard.status, 200);
+  assert.equal(firstCard.body.orderId, cardId);
+  assert.equal(secondCard.body.orderId, cardId);
+
+  const sinpeAfterCard = await call(sinpe, { body: { ...customer, items: [{ key: 'focus', qty: 1 }], clientOrderId: cardId } });
+  assert.equal(sinpeAfterCard.status, 200);
+  assert.notEqual(sinpeAfterCard.body.orderId, cardId);
+  assert.match(sinpeAfterCard.body.orderId, /^ORD-\d{10,}-\d{4}$/);
+  assert.equal(sinpeAfterCard.body.sinpe.reference, sinpeAfterCard.body.orderId);
+
+  const sinpeId = 'ORD-1791071433600-4402';
+  const firstSinpe = await call(sinpe, { body: { ...customer, items: [{ key: 'focus', qty: 1 }], clientOrderId: sinpeId } });
+  const secondSinpe = await call(sinpe, { body: { ...customer, items: [{ key: 'focus', qty: 1 }], clientOrderId: sinpeId } });
+  assert.equal(firstSinpe.body.orderId, sinpeId);
+  assert.equal(secondSinpe.body.orderId, sinpeId);
+});
+
 test('card: InitiateCheckout reuses the event id the checkout page fired (Meta dedup)', async () => {
   const c = await call(card, { body: { ...customer, items: [{ key: 'focus', qty: 1 }], meta: { icEventId: 'ic_mgf3k2_ab12cd34' } } });
   assert.equal(c.body.metaEventId, 'ic_mgf3k2_ab12cd34');

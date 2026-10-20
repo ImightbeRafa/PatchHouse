@@ -2,10 +2,10 @@
  * PatchHouse – Tilopay redirect confirmation (called by /success.html).
  *
  * The redirect query string is controlled by the browser, so `code=1` alone proves nothing.
- * An approved return is fulfilled when our own signed returnData verifies and the amount
- * matches that snapshot. Tilopay's OrderHash is logged for diagnosis only — it is not a gate,
- * and webhooks are not required. A failed fulfilment still tries to leave a Betsy row marked
- * "Pago tarjeta por verificar" and always alerts the owner.
+ * An approved return is fulfilled only when our signed returnData verifies and Tilopay's
+ * consult endpoint confirms the capture for that amount. OrderHash is logged, not a gate.
+ * If consult is down or does not confirm the payment, the order is left PENDIENTE in Betsy
+ * (metadata.paymentVerification) and the owner is alerted. No customer paid email in that case.
  */
 import { sendPaymentProcessingAlert } from '../_lib/email.js';
 import { processPaidOrder } from '../_lib/fulfillment.js';
@@ -14,26 +14,10 @@ import { normalizeTrustedOrder } from '../_lib/order.js';
 import { verifyOrderToken } from '../_lib/sign.js';
 import { purchaseEventId } from '../_lib/meta.js';
 import { guardPost, parseBody, isDryRun } from '../_lib/http.js';
-import { computeOrderHash, phpNumberFormat2 } from '../_lib/tilopay.js';
+import { computeOrderHash, consultTilopayOrder, hasApprovedTilopayCapture, phpNumberFormat2 } from '../_lib/tilopay.js';
 
 const REVIEW_STATUS = 'Pago tarjeta por verificar';
 const reviewRecorded = new Set();
-
-function parseAmount(value) {
-  const text = String(value).trim();
-  if (/^₡?\d{1,3}(\.\d{3})+$/.test(text)) return Number(text.replace(/[^\d]/g, ''));
-  return Number(text.replace(/[^\d,.-]/g, '').replace(/,/g, ''));
-}
-
-/** Missing amount means "use the signed snapshot". A supplied amount must format the same. */
-function amountMatchesSnapshot(supplied, signedTotal) {
-  const signed = Number(signedTotal);
-  if (!Number.isFinite(signed) || signed <= 0) return false;
-  if (supplied === undefined || supplied === null || String(supplied).trim() === '') return true;
-  const numeric = parseAmount(supplied);
-  if (!Number.isFinite(numeric)) return false;
-  return phpNumberFormat2(numeric) === phpNumberFormat2(signed);
-}
 
 function logOrderHash({ orderHash, transactionId, order, auth }) {
   const received = String(orderHash || '').slice(0, 128);
@@ -113,7 +97,7 @@ export default async function handler(req, res) {
   let transactionId;
   try {
     const body = parseBody(req);
-    const { orderId, code, auth, returnData, orderHash, amount } = body;
+    const { orderId, code, auth, returnData, orderHash } = body;
     transactionId = body.transactionId;
     if (!orderId) return res.status(400).json({ success: false, error: 'Order ID required' });
 
@@ -145,13 +129,34 @@ export default async function handler(req, res) {
 
     logOrderHash({ orderHash, transactionId, order, auth });
 
-    if (!amountMatchesSnapshot(amount, snapshot.total)) {
-      const reviewed = await reviewApprovedOrder(
-        order,
-        transactionId,
-        'Approved Tilopay redirect amount does not match the signed snapshot'
-      );
-      return res.status(reviewed.status).json({ ...reviewed.body, ...summary });
+    if (!isDryRun()) {
+      let rows;
+      try {
+        rows = await consultTilopayOrder(order.orderId);
+      } catch (err) {
+        console.info('[Confirm] Tilopay consult unavailable', { orderNumber: order.orderId });
+        const reviewed = await reviewApprovedOrder(
+          order,
+          transactionId,
+          `Tilopay status check failed: ${err.message}`
+        );
+        return res.status(reviewed.status).json({ ...reviewed.body, pending: true, ...summary });
+      }
+      const approved = hasApprovedTilopayCapture(rows, snapshot.total);
+      console.info('[Confirm] Tilopay consult', {
+        orderNumber: order.orderId,
+        approved,
+        codes: rows.map((row) => row.code).join(',')
+      });
+      if (!approved) {
+        const reviewed = await reviewApprovedOrder(
+          order,
+          transactionId,
+          'Tilopay did not confirm an approved payment for the signed amount'
+        );
+        // The redirect said approved, but Tilopay did not. Do not tell the shopper it was paid.
+        return res.status(reviewed.status).json({ ...reviewed.body, success: false, paid: false, ...summary });
+      }
     }
 
     let result;
