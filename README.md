@@ -49,8 +49,8 @@ Para **editar un producto, precio, combo o FAQ** tocá `shared/catalog.js` y cor
 
 ## Despliegue (VPS)
 
-1. Variables de entorno: ver `.env.example` (nuevas: `SINPE_PHONE`, `SINPE_HOLDER`; opcionales: `ORDER_SIGNING_SECRET`, `TILOPAY_REDIRECT_FULFILL`).
-2. Confirmá que el webhook de Tilopay apunta a `https://www.patchhouse.shopping/api/tilopay/webhook` (con **www**: el dominio sin www redirige con 301 y un POST no sobrevive la redirección) y que `TILOPAY_WEBHOOK_SECRET` coincide.
+1. Variables de entorno: ver `.env.example` (nuevas: `SINPE_PHONE`, `SINPE_HOLDER`; opcional: `ORDER_SIGNING_SECRET`).
+2. El pago con tarjeta se registra en el regreso aprobado (`/api/tilopay/confirm`) cuando `returnData` está firmado. Si también configurás el webhook, la URL es `https://www.patchhouse.shopping/api/tilopay/webhook` (con **www**: el dominio sin www redirige con 301 y un POST no sobrevive la redirección) y `TILOPAY_WEBHOOK_SECRET` tiene que coincidir.
 3. El servidor debe correr con `NODE_ENV=production`: así `ORDER_DRY_RUN` nunca puede apagar los pedidos reales.
 4. Cambiar stock (`VITE_SOLD_OUT`) requiere un nuevo deploy: se lee al construir las páginas.
 
