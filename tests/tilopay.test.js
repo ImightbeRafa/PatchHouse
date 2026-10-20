@@ -85,15 +85,30 @@ async function withLiveFulfillment(betsyMode, fn) {
   };
   const betsyCalls = [];
   const resendCalls = [];
+  const consultCalls = [];
+  const tilopayBase = String(process.env.TILOPAY_BASE_URL || 'https://app.tilopay.com/api/v1').replace(/\/+$/, '');
   process.env.ORDER_DRY_RUN = 'false';
   process.env.BETSY_API_KEY = 'betsy-test';
   process.env.BETSY_API_URL = 'https://betsy.test/orders';
   process.env.RESEND_API_KEY = 'resend-test';
   process.env.ORDER_NOTIFICATION_EMAIL = 'owner@example.com';
   delete process.env.META_CAPI_ACCESS_TOKEN;
+  const consultRow = (payload) => {
+    if (betsyMode === 'declined') return { code: '0', amount: '36800.00', orderNumber: payload.orderNumber, response: 'Rechazada' };
+    if (betsyMode === 'mismatch') return { code: '1', amount: '1.00', orderNumber: payload.orderNumber };
+    return { code: '1', amount: '36800.00', orderNumber: payload.orderNumber, card: '4021', last: '5221' };
+  };
   globalThis.fetch = async (url, opts) => {
     const u = String(url);
     const payload = opts?.body ? JSON.parse(opts.body) : null;
+    if (u === `${tilopayBase}/login`) {
+      if (betsyMode === 'down') return { ok: false, status: 503, text: async () => 'unavailable', json: async () => ({}) };
+      return { ok: true, status: 200, text: async () => '', json: async () => ({ access_token: 'tok' }) };
+    }
+    if (u === `${tilopayBase}/consult`) {
+      consultCalls.push(payload);
+      return { ok: true, status: 200, text: async () => '', json: async () => ({ type: '200', response: [consultRow(payload)] }) };
+    }
     if (u === process.env.BETSY_API_URL) {
       betsyCalls.push(payload);
       if (betsyMode === 'fail') return { ok: false, status: 500, text: async () => 'down', json: async () => ({}) };
@@ -106,7 +121,7 @@ async function withLiveFulfillment(betsyMode, fn) {
     throw new Error(`unexpected fetch ${u}`);
   };
   try {
-    return await fn({ betsyCalls, resendCalls });
+    return await fn({ betsyCalls, resendCalls, consultCalls });
   } finally {
     process.env.ORDER_DRY_RUN = prev.dry;
     if (prev.betsyKey === undefined) delete process.env.BETSY_API_KEY; else process.env.BETSY_API_KEY = prev.betsyKey;
@@ -143,7 +158,7 @@ describe('confirm redirect fulfillment', { concurrency: false }, () => {
       prevInfo(...args);
     };
     try {
-      await withLiveFulfillment('ok', async ({ betsyCalls, resendCalls }) => {
+      await withLiveFulfillment('ok', async ({ betsyCalls, resendCalls, consultCalls }) => {
         const first = await call(confirm, approvedBody(orderId));
         assert.equal(first.status, 200);
         assert.equal(first.body.success, true);
@@ -163,11 +178,15 @@ describe('confirm redirect fulfillment', { concurrency: false }, () => {
         assert.equal(hashLog.received, 'a'.repeat(64));
         assert.match(hashLog.computed, /^[0-9a-f]{64}$/);
         assert.notEqual(hashLog.computed, hashLog.received);
-        const dumped = JSON.stringify(hashLog);
+        const dumped = JSON.stringify(logs);
         assert.equal(dumped.includes(creds.TILOPAY_PASSWORD), false);
         assert.equal(dumped.includes(creds.TILOPAY_API_KEY), false);
         assert.equal(dumped.includes(base.email), false);
         assert.equal(dumped.includes(base.auth), false);
+        assert.equal(dumped.includes('5221'), false);
+        assert.equal(consultCalls.length >= 1, true);
+        assert.equal(consultCalls[0].merchantId, '');
+        assert.equal(consultCalls[0].orderNumber, orderId);
 
         const again = await call(confirm, approvedBody(orderId));
         assert.equal(again.status, 200);
@@ -181,24 +200,56 @@ describe('confirm redirect fulfillment', { concurrency: false }, () => {
     }
   });
 
-  test('amount that does not match the signed snapshot is a review sync, not a paid order', async () => {
+  test('Tilopay approved amount that does not match the snapshot is not paid', async () => {
     const orderId = 'ORD-1791071433200-1002';
-    await withLiveFulfillment('ok', async ({ betsyCalls, resendCalls }) => {
-      const first = await call(confirm, approvedBody(orderId, { amount: '100.00' }));
+    await withLiveFulfillment('mismatch', async ({ betsyCalls, resendCalls }) => {
+      const first = await call(confirm, approvedBody(orderId));
       assert.equal(first.status, 200);
-      assert.equal(first.body.success, true);
-      assert.equal(first.body.review, true);
+      assert.equal(first.body.success, false);
+      assert.equal(first.body.paid, false);
       assert.equal(betsyCalls.length, 1);
-      assert.equal(betsyCalls[0].payment.status, 'Pago tarjeta por verificar');
-      assert.match(JSON.stringify(betsyCalls[0]), /Pago tarjeta por verificar/);
+      assert.equal(betsyCalls[0].payment.status, 'PENDIENTE');
+      assert.equal(betsyCalls[0].metadata.paymentVerification, 'Pago tarjeta por verificar');
       assert.equal(subjects(resendCalls).filter((s) => s.startsWith('[ALERTA PAGO]')).length, 1);
-      assert.equal(subjects(resendCalls).some((s) => s.startsWith('Nueva Orden:')), false);
+      assert.equal(subjects(resendCalls).some((s) => s.startsWith('Confirmación de Pedido')), false);
 
-      const again = await call(confirm, approvedBody(orderId, { amount: '100.00' }));
+      const again = await call(confirm, approvedBody(orderId));
       assert.equal(again.body.alreadyProcessed, true);
-      assert.equal(again.body.review, true);
       assert.equal(betsyCalls.length, 1);
       assert.equal(resendCalls.length, 1);
+    });
+  });
+
+  test('forged code=1 on a declined Tilopay capture is not paid', async () => {
+    const orderId = 'ORD-1791071433500-1005';
+    await withLiveFulfillment('declined', async ({ betsyCalls, resendCalls, consultCalls }) => {
+      const first = await call(confirm, approvedBody(orderId));
+      assert.equal(first.status, 200);
+      assert.equal(first.body.success, false);
+      assert.equal(first.body.paid, false);
+      assert.equal(consultCalls.length, 1);
+      assert.equal(betsyCalls.length, 1);
+      assert.equal(betsyCalls[0].payment.status, 'PENDIENTE');
+      assert.equal(betsyCalls[0].metadata.paymentVerification, 'Pago tarjeta por verificar');
+      assert.equal(subjects(resendCalls).some((s) => s.startsWith('Confirmación de Pedido') || s.startsWith('Nueva Orden:')), false);
+      assert.equal(subjects(resendCalls).filter((s) => s.startsWith('[ALERTA PAGO]')).length, 1);
+    });
+  });
+
+  test('Tilopay API down leaves the order por verificar and does not send a paid email', async () => {
+    const orderId = 'ORD-1791071433600-1006';
+    await withLiveFulfillment('down', async ({ betsyCalls, resendCalls, consultCalls }) => {
+      const first = await call(confirm, approvedBody(orderId));
+      assert.equal(first.status, 200);
+      assert.equal(first.body.success, true);
+      assert.equal(first.body.pending, true);
+      assert.equal(first.body.review, true);
+      assert.equal(consultCalls.length, 0);
+      assert.equal(betsyCalls.length, 1);
+      assert.equal(betsyCalls[0].payment.status, 'PENDIENTE');
+      assert.equal(betsyCalls[0].metadata.paymentVerification, 'Pago tarjeta por verificar');
+      assert.equal(subjects(resendCalls).some((s) => s.startsWith('Confirmación de Pedido')), false);
+      assert.equal(subjects(resendCalls).filter((s) => s.startsWith('[ALERTA PAGO]')).length, 1);
     });
   });
 

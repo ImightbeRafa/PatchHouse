@@ -42,6 +42,77 @@ export function computeOrderHash({ tpt, orderNumber, amount, currency = 'CRC', c
   return crypto.createHmac('sha256', `${tpt}|${apiKey}|${apiPassword}`).update(params).digest('hex');
 }
 
+const withTimeout = (ms = 12000) => ({ signal: AbortSignal.timeout(ms) });
+
+function parseAmount(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return NaN;
+  if (/^₡?\d{1,3}(\.\d{3})+$/.test(text)) return Number(text.replace(/[^\d]/g, ''));
+  return Number(text.replace(/[^\d,.-]/g, '').replace(/,/g, ''));
+}
+
+/** True when a Tilopay amount string is the same colones value as the signed snapshot. */
+export function tilopayAmountMatches(supplied, signedTotal) {
+  const signed = Number(signedTotal);
+  const numeric = parseAmount(supplied);
+  if (!Number.isFinite(signed) || signed <= 0 || !Number.isFinite(numeric)) return false;
+  return phpNumberFormat2(numeric) === phpNumberFormat2(signed);
+}
+
+/**
+ * Paid only when consult shows an approved capture for this exact amount.
+ * https://tilopay.com/en/developers/api/procesos-operativos/consult
+ */
+export function hasApprovedTilopayCapture(rows, signedTotal) {
+  return (Array.isArray(rows) ? rows : []).some((row) =>
+    String(row && row.code) === '1' && tilopayAmountMatches(row.amount, signedTotal)
+  );
+}
+
+/** Same login create-payment already uses: POST /api/v1/login → access_token. */
+export async function tilopayLogin(baseUrl, creds = process.env) {
+  const apiuser = creds.TILOPAY_USER;
+  const password = creds.TILOPAY_PASSWORD;
+  if (!apiuser || !password) throw new Error('Tilopay credentials not configured');
+  const res = await fetch(`${baseUrl}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apiuser, password }),
+    ...withTimeout()
+  });
+  if (!res.ok) throw new Error(`Tilopay login failed: ${res.status}`);
+  const data = await res.json();
+  if (!data.access_token) throw new Error('No access token in Tilopay response');
+  return data.access_token;
+}
+
+/**
+ * POST /api/v1/consult. merchantId is sent empty, matching Tilopay's documented example.
+ * Returns the response rows only (no card data is copied out).
+ */
+export async function consultTilopayOrder(orderNumber, creds = process.env) {
+  const baseUrl = String(creds.TILOPAY_BASE_URL || 'https://app.tilopay.com/api/v1').replace(/\/+$/, '');
+  const token = await tilopayLogin(baseUrl, creds);
+  const res = await fetch(`${baseUrl}/consult`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      key: creds.TILOPAY_API_KEY || '',
+      orderNumber: String(orderNumber || ''),
+      merchantId: creds.TILOPAY_MERCHANT_ID || ''
+    }),
+    ...withTimeout()
+  });
+  if (!res.ok) throw new Error(`Tilopay consult failed: ${res.status}`);
+  const data = await res.json();
+  const rows = Array.isArray(data && data.response) ? data.response : [];
+  return rows.map((row) => ({
+    code: String(row && row.code != null ? row.code : ''),
+    amount: row && row.amount,
+    orderNumber: row && row.orderNumber
+  }));
+}
+
 /** True only for an approved payment whose OrderHash matches what Tilopay would have signed. */
 export function verifyTilopayRedirect({ orderHash, tpt, orderNumber, amount, code, auth, email }, creds = process.env) {
   const given = String(orderHash || '').toLowerCase();

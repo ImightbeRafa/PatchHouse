@@ -6,6 +6,7 @@ import { shippingProgress } from './core.js';
 import { cart, catalog, storageGet, storageSet } from './lib/store.js';
 import { $, $$, formatCRC, lineHtml, bindLineControls, track, orderContents, toast, metaIds, afterTracking } from './lib/ui.js';
 import { validateCheckout, sanitizeCustomer, formatPhone } from '../../shared/validate.js';
+import { clientOrderId, clearClientOrderId } from './lib/order-attempt.js';
 
 const form = $('#checkout-form');
 const grid = $('[data-checkout]');
@@ -16,7 +17,6 @@ const summaryToggle = $('[data-summary-toggle]');
 
 const CUSTOMER_KEY = 'ph_customer';
 const ORDER_KEY = 'ph_last_order';
-const CLIENT_ORDER_KEY = 'ph_checkout_order';
 const FIELDS = ['nombre', 'telefono', 'email', 'provincia', 'canton', 'distrito', 'direccion', 'comentarios'];
 
 let methods = { sinpe: true, card: true };
@@ -168,17 +168,7 @@ function restoreCustomer() {
   } catch { /* ignore */ }
 }
 
-/* ---------- order id: stable per cart+customer so double submits map to one order ---------- */
-function clientOrderId(customer, total) {
-  const fingerprint = JSON.stringify({ e: customer.email, p: customer.telefono.replace(/\D/g, ''), i: cart.items(), t: total });
-  try {
-    const cur = JSON.parse(sessionStorage.getItem(CLIENT_ORDER_KEY) || 'null');
-    if (cur && cur.fingerprint === fingerprint && /^ORD-\d{10,}-\d{4}$/.test(cur.orderId)) return cur.orderId;
-  } catch { /* ignore */ }
-  const orderId = `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-  try { sessionStorage.setItem(CLIENT_ORDER_KEY, JSON.stringify({ orderId, fingerprint })); } catch { /* ignore */ }
-  return orderId;
-}
+/* ---------- order id: one id per attempt; a retry before that attempt succeeds reuses it ---------- */
 
 function setBusy(on) {
   submitting = on;
@@ -216,7 +206,13 @@ form.addEventListener('submit', async (e) => {
     ...customer,
     website: raw.website || '',
     items: summary.items.map(({ key, qty }) => ({ key, qty })),
-    clientOrderId: clientOrderId(customer, summary.total),
+    clientOrderId: clientOrderId(sessionStorage, {
+      method: m,
+      email: customer.email,
+      phone: customer.telefono,
+      items: cart.items(),
+      total: summary.total
+    }),
     meta: { ...metaIds(), icEventId: IC_EVENT_ID }
   };
 
@@ -247,6 +243,7 @@ form.addEventListener('submit', async (e) => {
       // https only; http://localhost is the sandbox redirect used by `npm run dev`
       if (!/^(https:\/\/|http:\/\/localhost[:/])/i.test(String(data.paymentUrl || ''))) throw new Error('Missing payment URL');
       storageSet(ORDER_KEY, JSON.stringify({ method: 'card', orderId: data.orderId, total: data.total, items: summary.items, savedAt: Date.now() }));
+      clearClientOrderId(sessionStorage);
       await afterTracking();
       window.location.assign(data.paymentUrl); // cart is cleared on /success.html once the payment is approved
       return;
@@ -255,7 +252,7 @@ form.addEventListener('submit', async (e) => {
     // SINPE Móvil: the order is registered; the customer now pays from their bank app.
     track('Lead', { ...contents, value: data.total }, data.metaEventId ? { eventID: data.metaEventId } : undefined);
     storageSet(ORDER_KEY, JSON.stringify({ method: 'sinpe', ...data, savedAt: Date.now() }));
-    try { sessionStorage.removeItem(CLIENT_ORDER_KEY); } catch { /* ignore */ }
+    clearClientOrderId(sessionStorage);
     cart.clear();
     await afterTracking();
     window.location.assign(`/pedido/?o=${encodeURIComponent(data.orderId)}`);

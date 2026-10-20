@@ -24,14 +24,12 @@ export async function sendOrderToBetsy(orderData) {
 
     const paymentMethod = orderData.paymentMethod || 'Tilopay';
     const cardReview = orderData.cardReview === true;
-    const paymentStatus = cardReview
-      ? 'Pago tarjeta por verificar'
-      : orderData.paymentStatus === 'completed' ? 'PAGADO' : 'PENDIENTE';
+    const paymentStatus = orderData.paymentStatus === 'completed' && !cardReview ? 'PAGADO' : 'PENDIENTE';
     const transactionId = orderData.paymentId || orderData.transactionId || 'PENDING';
 
     const methodLabel = paymentMethod === 'SINPE Móvil' ? 'SINPE Móvil' : 'Tarjeta (Tilopay)';
     const paymentComment = cardReview
-      ? `Pago: ${methodLabel} - Estado: Pago tarjeta por verificar - ID Transacción: ${transactionId}`
+      ? `Pago: ${methodLabel} - Estado: PENDIENTE - Verificación: Pago tarjeta por verificar - ID Transacción: ${transactionId}`
       : paymentStatus === 'PAGADO'
         ? `Pago: ${methodLabel} - Estado: PAGADO - ID Transacción: ${transactionId}`
         : `Pago: ${methodLabel} - Estado: PENDIENTE (verificar comprobante SINPE antes de despachar)`;
@@ -90,6 +88,7 @@ export async function sendOrderToBetsy(orderData) {
         referrer: orderData.referrer || 'direct',
         comments: fullComments,
         createdAt: orderData.createdAt || new Date().toISOString(),
+        ...(cardReview ? { paymentVerification: 'Pago tarjeta por verificar' } : {})
       },
     };
 
