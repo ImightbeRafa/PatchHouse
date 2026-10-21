@@ -3,6 +3,8 @@
  * Pure functions only.
  */
 import { PROVINCES } from './catalog.js';
+import { checkCrPhone, normalizeCrPhone } from './anti-troll/phone.js';
+import { isValidEmailSyntax } from './anti-troll/email.js';
 
 export const FIELD_LABELS = {
   nombre: 'nombre y apellido',
@@ -17,18 +19,13 @@ export const FIELD_LABELS = {
 
 /** Costa Rica numbers: 8 digits, optionally prefixed with +506 / 506 / 00506. */
 export function normalizePhone(value) {
-  let digits = String(value || '').replace(/\D/g, '');
-  if (digits.startsWith('00506')) digits = digits.slice(5);
-  else if (digits.length === 11 && digits.startsWith('506')) digits = digits.slice(3);
-  return digits;
+  return normalizeCrPhone(value);
 }
 
 export function formatPhone(value) {
   const d = normalizePhone(value);
   return d.length === 8 ? `${d.slice(0, 4)}-${d.slice(4)}` : String(value || '').trim();
 }
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /**
  * @param {object} [opts]
@@ -43,11 +40,11 @@ export function validateCheckout(data = {}, { emailRequired = true } = {}) {
   if (!nombre) errors.nombre = 'Escribí tu nombre completo.';
   else if (nombre.split(/\s+/).length < 2) errors.nombre = 'Incluí nombre y apellido.';
 
-  if (!get('telefono')) errors.telefono = 'Escribí tu número de teléfono.';
-  else if (normalizePhone(data.telefono).length !== 8) errors.telefono = 'Usá un número de 8 dígitos, ej. 8888-8888.';
+  const phone = checkCrPhone(get('telefono'));
+  if (!phone.ok) errors.telefono = phone.message;
 
   if (!get('email')) { if (emailRequired) errors.email = 'Escribí tu correo electrónico para pagar con tarjeta.'; }
-  else if (!EMAIL_RE.test(get('email'))) errors.email = 'Revisá el correo, parece incompleto.';
+  else if (!isValidEmailSyntax(get('email'))) errors.email = 'Revisá el correo, parece incompleto o mal escrito.';
 
   if (!get('provincia')) errors.provincia = 'Seleccioná tu provincia.';
   else if (!PROVINCES.includes(get('provincia'))) errors.provincia = 'Provincia no válida.';

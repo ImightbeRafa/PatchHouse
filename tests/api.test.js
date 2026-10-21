@@ -14,6 +14,16 @@ const { default: sinpe } = await import('../api/sinpe/create-order.js');
 const { default: card } = await import('../api/tilopay/create-payment.js');
 const { default: confirm } = await import('../api/tilopay/confirm.js');
 const { default: config } = await import('../api/config.js');
+const { setOrderCheckDeps } = await import('../shared/anti-troll/server.js');
+
+// Offline DNS for the handler tests: every domain has an MX except nomail.test; Turnstile off.
+const fakeResolver = {
+  resolveMx: async (d) => { if (d === 'nomail.test') throw Object.assign(new Error('nf'), { code: 'ENOTFOUND' }); return [{ exchange: `mx.${d}`, priority: 10 }]; },
+  resolve4: async () => { throw Object.assign(new Error('nf'), { code: 'ENOTFOUND' }); },
+  resolve6: async () => { throw Object.assign(new Error('nf'), { code: 'ENOTFOUND' }); }
+};
+const baseEnv = { ...process.env, TURNSTILE_SITE_KEY: '', TURNSTILE_SECRET: '' };
+setOrderCheckDeps({ resolver: fakeResolver, env: baseEnv });
 
 function call(handler, { method = 'POST', body = {}, headers = {} } = {}) {
   return new Promise((resolve) => {
@@ -64,7 +74,7 @@ test('API only accepts same-origin POST', async () => {
 
 test('config exposes payment availability, no secrets', async () => {
   const r = await call(config, { method: 'GET' });
-  assert.deepEqual(r.body, { sinpe: { enabled: true }, card: { enabled: true } });
+  assert.deepEqual(r.body, { sinpe: { enabled: true }, card: { enabled: true }, turnstile: null });
 });
 
 test('signed order tokens verify and reject tampering', () => {
@@ -132,4 +142,47 @@ test('card: InitiateCheckout reuses the event id the checkout page fired (Meta d
   assert.equal(c.body.metaEventId, 'ic_mgf3k2_ab12cd34');
   const forged = await call(card, { body: { ...customer, items: [{ key: 'focus', qty: 1 }], meta: { icEventId: 'purchase_x' } } });
   assert.match(forged.body.metaEventId, /^ic_ORD-/);
+});
+
+test('anti-troll: SINPE + card reject disposable and non-existent email domains with Spanish field errors', async () => {
+  for (const h of [sinpe, card]) {
+    const d = await call(h, { body: { ...customer, email: 'troll@mailinator.com', items: [{ key: 'focus', qty: 1 }] } });
+    assert.equal(d.status, 400);
+    assert.match(d.body.errors.email, /temporales o desechables/);
+    const n = await call(h, { body: { ...customer, email: 'ana@nomail.test', items: [{ key: 'focus', qty: 1 }] } });
+    assert.equal(n.status, 400);
+    assert.match(n.body.errors.email, /No encontramos el dominio/);
+  }
+});
+
+test('anti-troll: fake CR phone numbers are rejected on submit', async () => {
+  for (const telefono of ['1234-5678', '8888-8888', '8765-4321', '3123-4567']) {
+    const r = await call(sinpe, { body: { ...customer, telefono, items: [{ key: 'focus', qty: 1 }] } });
+    assert.equal(r.status, 400, telefono);
+    assert.ok(r.body.errors.telefono, telefono);
+  }
+});
+
+test('anti-troll: Turnstile enforced when both keys are set, config exposes only the site key', async () => {
+  const calls = [];
+  setOrderCheckDeps({
+    resolver: fakeResolver,
+    env: { ...baseEnv, TURNSTILE_SITE_KEY: 'site-k', TURNSTILE_SECRET: 'secret-k' },
+    fetchImpl: async (url, init) => { calls.push(String(init.body)); return { ok: true, json: async () => ({ success: init.body.get('response') === 'good' }) }; }
+  });
+  try {
+    const cfg = await call(config, { method: 'GET' });
+    assert.deepEqual(cfg.body.turnstile, { siteKey: 'site-k' });
+    assert.ok(!JSON.stringify(cfg.body).includes('secret-k'));
+    const missing = await call(sinpe, { body: { ...customer, items: [{ key: 'focus', qty: 1 }] } });
+    assert.equal(missing.status, 403);
+    assert.equal(missing.body.error, 'verification_failed');
+    const bad = await call(card, { body: { ...customer, turnstileToken: 'bad', items: [{ key: 'focus', qty: 1 }] } });
+    assert.equal(bad.status, 403);
+    const good = await call(sinpe, { body: { ...customer, turnstileToken: 'good', items: [{ key: 'focus', qty: 1 }] }, headers: { 'cf-connecting-ip': '1.2.3.4' } });
+    assert.equal(good.status, 200);
+    assert.ok(calls.at(-1).includes('remoteip=1.2.3.4'));
+  } finally {
+    setOrderCheckDeps({ resolver: fakeResolver, env: baseEnv });
+  }
 });
