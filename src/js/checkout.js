@@ -7,6 +7,8 @@ import { cart, catalog, storageGet, storageSet } from './lib/store.js';
 import { $, $$, formatCRC, lineHtml, bindLineControls, track, orderContents, toast, metaIds, afterTracking } from './lib/ui.js';
 import { validateCheckout, sanitizeCustomer, formatPhone } from '../../shared/validate.js';
 import { clientOrderId, clearClientOrderId } from './lib/order-attempt.js';
+import { suggestEmailFix } from '../../shared/anti-troll/email.js';
+import { createTurnstile } from '../../shared/anti-troll/turnstile-client.js';
 
 const form = $('#checkout-form');
 const grid = $('[data-checkout]');
@@ -26,6 +28,7 @@ const IC_EVENT_ID = `ic_${Date.now().toString(36)}_${Math.random().toString(36).
 let icTracked = false;
 let submitting = false;
 let attempted = false;
+let turnstile = createTurnstile(); // no-op until /api/config returns a site key
 
 /* ---------- summary ---------- */
 function renderSummary() {
@@ -105,6 +108,7 @@ async function loadConfig() {
     // Never leave the customer with no way to pay: if config says neither, show both and let the server answer.
     if (!methods.sinpe && !methods.card) methods = { sinpe: true, card: true };
     applyMethods();
+    if (cfg.turnstile?.siteKey) turnstile = createTurnstile({ siteKey: cfg.turnstile.siteKey, container: $('[data-turnstile]', form) });
   } catch { /* offline/dev without API: keep both options */ }
 }
 
@@ -154,6 +158,23 @@ form.addEventListener('change', (e) => { if (e.target.name === 'metodo') syncMet
 form.addEventListener('focusout', (e) => {
   if (e.target.name === 'telefono' && e.target.value.trim()) e.target.value = formatPhone(e.target.value);
   if (attempted && e.target.name) setError(e.target.name, validateCheckout(readCustomer().customer, rules())[e.target.name] || '');
+  if (e.target.name === 'email') syncEmailSuggestion();
+});
+
+/* ---------- email typo hint (never blocks) ---------- */
+const suggestBox = $('[data-email-suggest]', form);
+const suggestBtn = $('[data-email-suggest-apply]', form);
+function syncEmailSuggestion() {
+  if (!suggestBox) return;
+  const fix = suggestEmailFix(fieldEl('email')?.value);
+  suggestBox.hidden = !fix;
+  if (fix) suggestBtn.textContent = fix;
+}
+suggestBtn?.addEventListener('click', () => {
+  fieldEl('email').value = suggestBtn.textContent;
+  suggestBox.hidden = true;
+  if (attempted) setError('email', validateCheckout(readCustomer().customer, rules()).email || '');
+  saveCustomer();
 });
 
 /* ---------- remember contact details (convenience, never payment data) ---------- */
@@ -218,12 +239,14 @@ form.addEventListener('submit', async (e) => {
 
   setBusy(true);
   try {
+    if (turnstile.enabled) payload.turnstileToken = await turnstile.getToken();
     const res = await fetch(m === 'card' ? '/api/tilopay/create-payment' : '/api/sinpe/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(payload)
     });
     const data = await res.json().catch(() => ({}));
+    turnstile.reset(); // tokens are single-use; a retry needs a fresh one
 
     if (!res.ok) {
       setBusy(false);
@@ -258,6 +281,7 @@ form.addEventListener('submit', async (e) => {
     window.location.assign(`/pedido/?o=${encodeURIComponent(data.orderId)}`);
   } catch (err) {
     console.error('Checkout error:', err);
+    turnstile.reset();
     setBusy(false);
     toast('Error de conexión. Revisá tu internet e intentá de nuevo.', { type: 'error' });
     showAlert('No pudimos conectar con el servidor. Intentá de nuevo en unos segundos o escribinos por WhatsApp.');

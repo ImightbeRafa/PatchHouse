@@ -9,6 +9,7 @@ import { guardPost, parseBody, appUrl, newOrderId, ORDER_ID_RE, cardConfig, isDr
 import { rememberCardOrderId } from '../_lib/payment-attempts.js';
 import { tilopayLogin } from '../_lib/tilopay.js';
 import { validateCheckout, sanitizeCustomer } from '../../shared/validate.js';
+import { runOrderChecks } from '../../shared/anti-troll/server.js';
 
 const withTimeout = (ms = 12000) => ({ signal: AbortSignal.timeout(ms) });
 const PROVINCE_STATES = { 'San José': 'SJ', 'Alajuela': 'A', 'Cartago': 'C', 'Heredia': 'H', 'Guanacaste': 'G', 'Puntarenas': 'P', 'Limón': 'L' };
@@ -25,6 +26,10 @@ export default async function handler(req, res) {
     if (Object.keys(errors).length) {
       return res.status(400).json({ error: 'Invalid fields', message: 'Faltan datos requeridos para continuar.', errors, missingFields: Object.keys(errors) });
     }
+
+    // Anti-troll: real email domain, not disposable, Turnstile (when configured). Fails open on outages.
+    const checks = await runOrderChecks({ email: customer.email, turnstileToken: body.turnstileToken, req });
+    if (!checks.ok) return res.status(checks.status).json(checks.body);
 
     let rawItems = body.items;
     if (typeof rawItems === 'string') {

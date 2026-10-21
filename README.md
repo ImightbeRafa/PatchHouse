@@ -42,6 +42,10 @@ Para **editar un producto, precio, combo o FAQ** tocá `shared/catalog.js` y cor
 
 `GET /api/config` indica qué métodos están disponibles: SINPE aparece solo si `SINPE_PHONE` y `SINPE_HOLDER` están configurados.
 
+## Anti-troll (pedidos falsos)
+
+`shared/anti-troll/` (módulo reutilizable, ver su README): teléfono CR válido (8 dígitos, empieza con 2/4/5/6/7/8, sin números falsos tipo 8888-8888 o 12345678), correo con dominio real (MX/A) y no desechable, sugerencia de typos sin bloquear, y Cloudflare Turnstile invisible si `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET` están configurados. Si DNS o Cloudflare fallan, el pedido pasa (fail open).
+
 ## Reglas de precio
 
 - Parches a ₡9.900 c/u; descuentos solo en combos (`shared/catalog.js`).
