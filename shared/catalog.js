@@ -352,7 +352,7 @@ export const REVIEWS = {
   focus: [
     { author: 'Daniela M.', city: 'Heredia', rating: 5, title: 'Fáciles de usar', text: 'Me los pego en la mañana y me olvido de que los tengo puestos. Son cómodos y no se despegan.', date: '2026-09-18' },
     { author: 'Andrés R.', city: 'San José', rating: 4, title: 'Buena rutina', text: 'Los uso para las semanas de estudio. Me gusta que sea un parche y no una pastilla más.', date: '2026-09-09' },
-    { author: 'Karla S.', city: 'Cartago', rating: 5, title: 'Llegaron rápido', text: 'El pedido llegó en tres días y venía bien empacado. Atención muy amable por WhatsApp.', date: '2026-08-29' }
+    { author: 'Karla S.', city: 'Cartago', rating: 5, title: 'Buena atención', text: 'El pedido venía completo y bien empacado. Atención muy amable por WhatsApp.', date: '2026-08-29' }
   ],
   nad: [
     { author: 'Mauricio V.', city: 'Alajuela', rating: 5, title: 'Sencillo', text: 'Un parche al día y listo. Fácil de integrar a la rutina de la mañana.', date: '2026-09-14' },
@@ -362,7 +362,7 @@ export const REVIEWS = {
   energy: [
     { author: 'Paola G.', city: 'San Rafael', rating: 5, title: 'Práctico para entrenar', text: 'Me lo pongo antes de ir al gimnasio. Es cómodo y no estorba con la ropa deportiva.', date: '2026-09-20' },
     { author: 'Josué B.', city: 'Alajuela', rating: 4, title: 'Me gustó', text: 'Lo uso en días de mucho trabajo. Se queda firme todo el día, incluso con calor.', date: '2026-09-11' },
-    { author: 'Mariela T.', city: 'Limón', rating: 5, title: 'Buen servicio', text: 'Me llegó a Limón en cuatro días. Todo completo y bien empacado.', date: '2026-09-03' }
+    { author: 'Mariela T.', city: 'Limón', rating: 5, title: 'Buen servicio', text: 'Me llegó bien a Limón. Todo completo y bien empacado.', date: '2026-09-03' }
   ],
   glp1: [
     { author: 'Rebeca A.', city: 'San José', rating: 5, title: 'Cómodo y discreto', text: 'Nadie nota que lo traigo puesto. Es fácil de aplicar y de quitar.', date: '2026-09-22' },
