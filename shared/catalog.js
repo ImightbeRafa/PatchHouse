@@ -30,7 +30,7 @@ export const SITE = {
   instagram: 'https://www.instagram.com/patchhouse.cr/',
   email: 'orders@patchhouse.shopping',
   pixelId: '2330584627352047',
-  deliveryDays: '2 a 5 días hábiles',
+  deliveryDays: '2 a 3 días hábiles',
   pickup: 'San Rafael y zonas cercanas'
 };
 
