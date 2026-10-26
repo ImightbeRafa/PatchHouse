@@ -56,6 +56,13 @@ export async function sendOrderToBetsy(orderData) {
         quantity: totalQty,
         unitPrice: formatCRC(orderData.subtotal || 0),
       },
+      // One line per cart item so BetsyCRM shows what was bought (ignored by older Betsy versions).
+      items: items.map(i => ({
+        name: i.name,
+        quantity: i.qty,
+        unitPrice: formatCRC(i.price),
+        lineTotal: formatCRC(i.lineTotal),
+      })),
       shipping: {
         cost: formatCRC(orderData.shippingCost),
         courier: 'Correos de Costa Rica',
