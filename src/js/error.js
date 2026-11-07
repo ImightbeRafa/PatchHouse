@@ -1,5 +1,8 @@
 import './core.js';
+import { clearClientOrderId } from './lib/order-attempt.js';
 import { $ } from './lib/ui.js';
+
+clearClientOrderId(sessionStorage);
 
 // Gateway messages come from the query string: render as text only, never as HTML.
 const q = new URLSearchParams(location.search);

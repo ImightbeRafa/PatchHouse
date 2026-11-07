@@ -1,11 +1,14 @@
 /**
  * /success.html – Tilopay redirect target.
- * Redirect parameters are untrusted: this page only reports status. The order is fulfilled
- * by the signed Tilopay webhook (see api/tilopay/confirm.js).
+ * Redirect parameters are untrusted. This page reports status and asks /api/tilopay/confirm
+ * to fulfill an approved payment from our signed returnData.
  */
 import './core.js';
+import { clearClientOrderId } from './lib/order-attempt.js';
 import { cart } from './lib/store.js';
 import { $, $$, track, orderContents } from './lib/ui.js';
+
+clearClientOrderId(sessionStorage);
 
 const states = $$('[data-state]');
 const show = (name) => states.forEach((s) => { s.hidden = s.dataset.state !== name; });
@@ -34,7 +37,7 @@ function done(summary, pending) {
   }
   document.title = 'Pedido recibido | PatchHouse.CR';
   cart.clear();
-  try { sessionStorage.removeItem('ph_checkout_order'); } catch { /* ignore */ }
+  clearClientOrderId(sessionStorage);
   show('success');
 }
 
@@ -67,8 +70,6 @@ function done(summary, pending) {
     }
     try { sessionStorage.setItem(seenKey, '1'); } catch { /* ignore */ }
     // Browser Purchase shares its eventID with the server event so Meta de-duplicates them.
-    // Also sent while "pending": Tilopay approved the payment (code=1) and the signed webhook
-    // sends the matching server Purchase with the same eventID.
     track('Purchase', { ...orderContents(data.items || []), value: data.total, currency: 'CRC' }, data.metaEventId ? { eventID: data.metaEventId } : undefined);
     done(data, Boolean(data.pending));
   } catch {

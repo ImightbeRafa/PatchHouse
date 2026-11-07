@@ -31,9 +31,10 @@ export function checkoutPage() {
         <legend>1. Datos personales</legend>
         <div class="row two">
           ${field('nombre', 'Nombre completo', '<input id="nombre" name="nombre" type="text" autocomplete="name" placeholder="María Fernández" required aria-describedby="nombre-error">')}
-          ${field('telefono', 'Teléfono', '<input id="telefono" name="telefono" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="8888-8888" required aria-describedby="telefono-error">')}
+          ${field('telefono', 'Teléfono', '<input id="telefono" name="telefono" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="8712-3456" required aria-describedby="telefono-error">')}
         </div>
         ${field('email', 'Correo electrónico <span class="opt-note" data-email-optional>(opcional)</span>', '<input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="maria@correo.com" aria-describedby="email-error">', 'Te enviamos la confirmación de tu pedido aquí.')}
+        <p class="email-suggest" data-email-suggest aria-live="polite" hidden>¿Quisiste decir <button type="button" class="link-btn" data-email-suggest-apply></button>?</p>
       </fieldset>
 
       <fieldset class="group">
@@ -72,6 +73,7 @@ export function checkoutPage() {
         ${field('comentarios', 'Comentarios (opcional)', '<textarea id="comentarios" name="comentarios" rows="2" placeholder="Instrucciones especiales de entrega…"></textarea>')}
       </fieldset>
 
+      <div class="turnstile-slot" data-turnstile></div>
       <div class="hp" aria-hidden="true"><label>No llenar este campo<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
 
       <button class="btn btn-cta btn-lg btn-block submit-desktop" type="submit" data-submit><span data-submit-label>Confirmar pedido</span></button>

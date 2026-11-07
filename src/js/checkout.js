@@ -6,6 +6,9 @@ import { shippingProgress } from './core.js';
 import { cart, catalog, storageGet, storageSet } from './lib/store.js';
 import { $, $$, formatCRC, lineHtml, bindLineControls, track, orderContents, toast, metaIds, afterTracking } from './lib/ui.js';
 import { validateCheckout, sanitizeCustomer, formatPhone } from '../../shared/validate.js';
+import { clientOrderId, clearClientOrderId } from './lib/order-attempt.js';
+import { suggestEmailFix } from '../../shared/anti-troll/email.js';
+import { createTurnstile } from '../../shared/anti-troll/turnstile-client.js';
 
 const form = $('#checkout-form');
 const grid = $('[data-checkout]');
@@ -16,7 +19,6 @@ const summaryToggle = $('[data-summary-toggle]');
 
 const CUSTOMER_KEY = 'ph_customer';
 const ORDER_KEY = 'ph_last_order';
-const CLIENT_ORDER_KEY = 'ph_checkout_order';
 const FIELDS = ['nombre', 'telefono', 'email', 'provincia', 'canton', 'distrito', 'direccion', 'comentarios'];
 
 let methods = { sinpe: true, card: true };
@@ -26,6 +28,7 @@ const IC_EVENT_ID = `ic_${Date.now().toString(36)}_${Math.random().toString(36).
 let icTracked = false;
 let submitting = false;
 let attempted = false;
+let turnstile = createTurnstile(); // no-op until /api/config returns a site key
 
 /* ---------- summary ---------- */
 function renderSummary() {
@@ -105,6 +108,7 @@ async function loadConfig() {
     // Never leave the customer with no way to pay: if config says neither, show both and let the server answer.
     if (!methods.sinpe && !methods.card) methods = { sinpe: true, card: true };
     applyMethods();
+    if (cfg.turnstile?.siteKey) turnstile = createTurnstile({ siteKey: cfg.turnstile.siteKey, container: $('[data-turnstile]', form) });
   } catch { /* offline/dev without API: keep both options */ }
 }
 
@@ -154,6 +158,23 @@ form.addEventListener('change', (e) => { if (e.target.name === 'metodo') syncMet
 form.addEventListener('focusout', (e) => {
   if (e.target.name === 'telefono' && e.target.value.trim()) e.target.value = formatPhone(e.target.value);
   if (attempted && e.target.name) setError(e.target.name, validateCheckout(readCustomer().customer, rules())[e.target.name] || '');
+  if (e.target.name === 'email') syncEmailSuggestion();
+});
+
+/* ---------- email typo hint (never blocks) ---------- */
+const suggestBox = $('[data-email-suggest]', form);
+const suggestBtn = $('[data-email-suggest-apply]', form);
+function syncEmailSuggestion() {
+  if (!suggestBox) return;
+  const fix = suggestEmailFix(fieldEl('email')?.value);
+  suggestBox.hidden = !fix;
+  if (fix) suggestBtn.textContent = fix;
+}
+suggestBtn?.addEventListener('click', () => {
+  fieldEl('email').value = suggestBtn.textContent;
+  suggestBox.hidden = true;
+  if (attempted) setError('email', validateCheckout(readCustomer().customer, rules()).email || '');
+  saveCustomer();
 });
 
 /* ---------- remember contact details (convenience, never payment data) ---------- */
@@ -168,17 +189,7 @@ function restoreCustomer() {
   } catch { /* ignore */ }
 }
 
-/* ---------- order id: stable per cart+customer so double submits map to one order ---------- */
-function clientOrderId(customer, total) {
-  const fingerprint = JSON.stringify({ e: customer.email, p: customer.telefono.replace(/\D/g, ''), i: cart.items(), t: total });
-  try {
-    const cur = JSON.parse(sessionStorage.getItem(CLIENT_ORDER_KEY) || 'null');
-    if (cur && cur.fingerprint === fingerprint && /^ORD-\d{10,}-\d{4}$/.test(cur.orderId)) return cur.orderId;
-  } catch { /* ignore */ }
-  const orderId = `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-  try { sessionStorage.setItem(CLIENT_ORDER_KEY, JSON.stringify({ orderId, fingerprint })); } catch { /* ignore */ }
-  return orderId;
-}
+/* ---------- order id: one id per attempt; a retry before that attempt succeeds reuses it ---------- */
 
 function setBusy(on) {
   submitting = on;
@@ -216,18 +227,26 @@ form.addEventListener('submit', async (e) => {
     ...customer,
     website: raw.website || '',
     items: summary.items.map(({ key, qty }) => ({ key, qty })),
-    clientOrderId: clientOrderId(customer, summary.total),
+    clientOrderId: clientOrderId(sessionStorage, {
+      method: m,
+      email: customer.email,
+      phone: customer.telefono,
+      items: cart.items(),
+      total: summary.total
+    }),
     meta: { ...metaIds(), icEventId: IC_EVENT_ID }
   };
 
   setBusy(true);
   try {
+    if (turnstile.enabled) payload.turnstileToken = await turnstile.getToken();
     const res = await fetch(m === 'card' ? '/api/tilopay/create-payment' : '/api/sinpe/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(payload)
     });
     const data = await res.json().catch(() => ({}));
+    turnstile.reset(); // tokens are single-use; a retry needs a fresh one
 
     if (!res.ok) {
       setBusy(false);
@@ -247,6 +266,7 @@ form.addEventListener('submit', async (e) => {
       // https only; http://localhost is the sandbox redirect used by `npm run dev`
       if (!/^(https:\/\/|http:\/\/localhost[:/])/i.test(String(data.paymentUrl || ''))) throw new Error('Missing payment URL');
       storageSet(ORDER_KEY, JSON.stringify({ method: 'card', orderId: data.orderId, total: data.total, items: summary.items, savedAt: Date.now() }));
+      clearClientOrderId(sessionStorage);
       await afterTracking();
       window.location.assign(data.paymentUrl); // cart is cleared on /success.html once the payment is approved
       return;
@@ -255,12 +275,13 @@ form.addEventListener('submit', async (e) => {
     // SINPE Móvil: the order is registered; the customer now pays from their bank app.
     track('Lead', { ...contents, value: data.total }, data.metaEventId ? { eventID: data.metaEventId } : undefined);
     storageSet(ORDER_KEY, JSON.stringify({ method: 'sinpe', ...data, savedAt: Date.now() }));
-    try { sessionStorage.removeItem(CLIENT_ORDER_KEY); } catch { /* ignore */ }
+    clearClientOrderId(sessionStorage);
     cart.clear();
     await afterTracking();
     window.location.assign(`/pedido/?o=${encodeURIComponent(data.orderId)}`);
   } catch (err) {
     console.error('Checkout error:', err);
+    turnstile.reset();
     setBusy(false);
     toast('Error de conexión. Revisá tu internet e intentá de nuevo.', { type: 'error' });
     showAlert('No pudimos conectar con el servidor. Intentá de nuevo en unos segundos o escribinos por WhatsApp.');
