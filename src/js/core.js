@@ -59,7 +59,7 @@ function renderDrawer() {
     foot.hidden = true;
     return;
   }
-  body.innerHTML = s.items.map((l) => lineHtml(l, catalog.products[l.key], { compact: true })).join('') + addOnsHtml(s.items);
+  body.innerHTML = s.items.map((l) => lineHtml(l, catalog.products[l.key], { compact: true })).join('') + bloomAddOnHtml(s) + addOnsHtml(s.items);
   foot.hidden = false;
   foot.innerHTML = `
     ${s.savings ? `<div class="drawer-total" style="font-size:14px;font-weight:700;color:var(--ok)"><span>Ahorrás</span><span>${formatCRC(s.savings)}</span></div>` : ''}
@@ -70,13 +70,30 @@ function renderDrawer() {
     <a class="btn btn-cta btn-lg btn-block" href="/checkout/">Finalizar compra</a>`;
 }
 
-/** "Completá tu rutina": patches not yet covered by the cart, then combos, max 3. */
+/** Bloom as a one-tap add-on (1 or 2 packs) while it is not in the cart yet. */
+function bloomAddOnHtml(s) {
+  const bloom = catalog.products.bloom;
+  if (!bloom || catalog.isSoldOut('bloom') || s.items.some((i) => i.key === 'bloom')) return '';
+  const row = (qty, sub) => {
+    const add = catalog.linePrice('bloom', qty);
+    const unlocks = s.subtotal < FREE_SHIPPING_FROM && s.subtotal + add >= FREE_SHIPPING_FROM;
+    return `<div class="addon">
+      <img src="/images/${qty === 1 ? 'bloom-patch' : 'bloom'}-thumb.webp" alt="" width="56" height="56" loading="lazy">
+      <div class="addon-main"><b>Bloom · ${qty} ${qty === 1 ? 'paquete' : 'paquetes'}</b><span>${sub}</span>${unlocks ? '<em>Y tu envío sale gratis</em>' : ''}</div>
+      <button class="btn btn-sm" type="button" data-add="bloom" data-qty="${qty}" aria-label="Agregar ${qty} ${qty === 1 ? 'paquete' : 'paquetes'} de Bloom al carrito">+ ${formatCRC(add)}</button>
+    </div>`;
+  };
+  return `<section class="addons skin" aria-label="Agregá Bloom a tu pedido"><small>Sumalo a tu pedido</small><h3>¿Un granito de último minuto? Bloom viaja en el mismo envío.</h3>${row(1, '9 parches')}${row(2, '18 parches')}</section>`;
+}
+
+/** "Completá tu rutina": patches not yet covered by the cart, then combos, max 3 (2 when Bloom is offered). */
 function addOnsHtml(items) {
   const inCart = new Set(items.map((i) => i.key));
   const covered = new Set(items.flatMap((i) => catalog.products[i.key]?.includes || []));
   const patches = catalog.patches().filter((p) => !covered.has(p.key) && !catalog.isSoldOut(p.key));
   const combos = catalog.combos().filter((c) => !inCart.has(c.key) && !catalog.isSoldOut(c.key) && c.includes.some((k) => covered.has(k)));
-  const picks = [...patches.slice(0, 2), ...combos.slice(0, 1), ...patches.slice(2)].slice(0, 3);
+  const max = inCart.has('bloom') || catalog.isSoldOut('bloom') ? 3 : 2;
+  const picks = [...patches.slice(0, 2), ...combos.slice(0, 1), ...patches.slice(2)].slice(0, max);
   if (!picks.length) return '';
   return `<section class="addons" aria-label="Agregá a tu pedido"><h3>Completá tu rutina</h3>${picks.map((p) => `
     <div class="addon">

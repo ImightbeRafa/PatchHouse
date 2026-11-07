@@ -34,12 +34,17 @@ function gallery(p, cat) {
     slides.push({ label: 'Qué recibís', html: `<div class="slide-html"><h2>Qué recibís</h2><div class="big-facts"><div><b>30</b>parches por paquete</div><div><b>1</b>parche al día</div><div><b>1 mes</b>de rutina</div></div><p class="slide-note">Envío a todo Costa Rica en ${SITE.deliveryDays}.</p></div>` });
   }
 
+  return galleryHtml(slides, p.badge && !cat.isSoldOut(p.key) ? `<span class="tag${isCombo ? ' save' : ''}">${esc(p.badge)}</span>` : '');
+}
+
+/** Gallery markup from [{label, thumb, html}] (pdp.js drives it). */
+export function galleryHtml(slides, badge = '') {
   const slideHtml = slides.map((s, i) => `<div class="slide${i === 0 ? ' on' : ''}" data-slide="${i}" role="tabpanel" aria-label="${esc(s.label || 'Foto del producto')}"${i === 0 ? '' : ' hidden'}>${s.html}</div>`).join('');
-  const thumbs = slides.map((s, i) => `<button type="button" class="th${i === 0 ? ' on' : ''}" data-thumb="${i}" role="tab" aria-selected="${i === 0}" aria-label="${esc(s.label || 'Foto del producto')}">${s.thumb ? `<img src="${s.thumb}" alt="" width="76" height="76" loading="lazy">` : esc(s.label)}</button>`).join('');
+  const thumbs = slides.map((s, i) => `<button type="button" class="th${s.video ? ' v' : ''}${i === 0 ? ' on' : ''}" data-thumb="${i}" role="tab" aria-selected="${i === 0}" aria-label="${esc(s.label || 'Foto del producto')}">${s.thumb ? `<img src="${s.thumb}" alt="" width="76" height="76" loading="lazy">` : esc(s.label)}</button>`).join('');
 
   return `
 <div class="pdp-gallery" data-gallery>
-  <div class="gal-main">${p.badge && !cat.isSoldOut(p.key) ? `<span class="tag${isCombo ? ' save' : ''}">${esc(p.badge)}</span>` : ''}<div class="slides">${slideHtml}</div>
+  <div class="gal-main">${badge}<div class="slides">${slideHtml}</div>
     <button class="gal-nav prev" type="button" aria-label="Anterior" data-gal-prev>‹</button><button class="gal-nav next" type="button" aria-label="Siguiente" data-gal-next>›</button>
   </div>
   <div class="thumbs" role="tablist" aria-label="Galería">${thumbs}</div>
@@ -47,7 +52,7 @@ function gallery(p, cat) {
 }
 
 /** "Elegí tu opción": this product alone or a combo that includes it, with the savings visible. */
-function optionPicker(p, cat) {
+export function optionPicker(p, cat) {
   const isCombo = p.kind === 'combo';
   const available = cat.combos().filter((c) => !cat.isSoldOut(c.key) && c.key !== p.key);
   const related = isCombo
@@ -75,7 +80,7 @@ function optionPicker(p, cat) {
   return `<fieldset class="options" data-options><legend class="lbl">${isCombo ? 'Elegí tu combo' : 'Elegí tu opción · ahorrá con un combo'}</legend>${options.map(row).join('')}</fieldset>`;
 }
 
-function comboQty() {
+export function comboQty() {
   return `<div class="qty-row" id="pack"><span class="lbl">Cantidad</span><div class="qty" data-qty-ctl><button type="button" aria-label="Reducir cantidad" data-qty-minus>−</button><output aria-live="polite" data-qty-out>1</output><button type="button" aria-label="Aumentar cantidad" data-qty-plus>+</button></div></div>`;
 }
 

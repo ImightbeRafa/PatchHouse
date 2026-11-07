@@ -35,7 +35,16 @@ export const SITE = {
 };
 
 /** Patch order is also the display order. */
-export const PATCH_ORDER = ['glp1', 'focus', 'energy', 'stress', 'dopamine', 'nad'];
+export const PATCH_ORDER = ['focus', 'energy', 'glp1', 'sleep', 'stress', 'dopamine', 'nad'];
+
+/** Bloom (skin): not a 30-day patch, own price ladder (approved by the owner, Nov 2026). */
+export const BLOOM_PRICE = 4500;
+export const BLOOM_PAIR_PRICE = 8000;
+/** Every pair of Bloom packs is ₡8.000 and an odd pack ₡4.500 (1 → 4.500, 2 → 8.000, 3 → 12.500…). */
+export const bloomPrice = (qty) => {
+  const n = Math.max(0, Math.floor(qty));
+  return Math.floor(n / 2) * BLOOM_PAIR_PRICE + (n % 2) * BLOOM_PRICE;
+};
 
 const COMMON_USAGE = [
   { title: 'Elegí tu fórmula', text: 'Seleccioná según lo que necesitás: enfoque, energía, metabolismo, mood o calma.' },
@@ -165,6 +174,42 @@ export const PATCHES = {
       'Se aplica sobre la piel, sin pastillas'
     ]
   },
+  sleep: {
+    key: 'sleep', slug: 'sleeping-patch', name: 'Sleeping Patch', short: 'Sleeping', image: 'sleep', accent: '#0a1f3d',
+    badge: 'Nuevo', theme: 'night',
+    tagline: 'Melatonina, magnesio, lúpulo y valeriana para tu noche',
+    result: 'Parches nocturnos con melatonina, magnesio, lúpulo y valeriana. Un parche por noche como parte de tu ritual para ir a dormir.',
+    bullets: [
+      ['Melatonina, magnesio, lúpulo y raíz de valeriana', 'cuatro ingredientes en un solo parche'],
+      ['Liberación gradual sobre la piel', 'diseñada para 6 a 8 horas'],
+      ['Un parche por noche', 'en muñeca, brazo o cuello']
+    ],
+    ingredients: [
+      ['Melatonina 7 mg', 'Hormona que tu cuerpo produce de forma natural cuando oscurece'],
+      ['Magnesio 41,32 mg', 'Mineral que contribuye al funcionamiento normal del sistema nervioso'],
+      ['Lúpulo 16,53 mg', 'Planta usada tradicionalmente en infusiones para la noche'],
+      ['Raíz de valeriana 27 mg', 'Raíz usada tradicionalmente en rutinas para el descanso']
+    ],
+    benefits: [
+      'Formulado para acompañar tu rutina de descanso',
+      'Con magnesio, que contribuye al funcionamiento normal del sistema nervioso',
+      'Liberación gradual, diseñada para 6 a 8 horas',
+      'Sin pastillas: un parche por noche'
+    ],
+    usage: [
+      { title: 'Despegá', text: 'Sacá un parche nuevo cada noche. Cada bolsa trae 30: un mes completo.' },
+      { title: 'Pegá', text: 'Aplicalo 1 a 2 horas antes de acostarte en piel limpia, seca y sin vello: muñeca, brazo o cuello.' },
+      { title: 'Descansá', text: 'Dejalo puesto durante la noche y retiralo al despertar. Rotá la zona cada día.' }
+    ],
+    warnings: [
+      'Solo para uso externo. Aplicar en piel limpia, seca y sin vello.',
+      'Consultá a tu médico antes de usarlo si tomás medicamentos, tenés una condición médica, sos menor de 18 años, estás embarazada o en lactancia.',
+      'No aplicar sobre heridas o piel irritada. Si notás irritación, retiralo y lavá la zona.',
+      'No usar si tenés sensibilidad a alguno de sus componentes.',
+      'Mantener fuera del alcance de los niños.'
+    ],
+    note: 'Contiene melatonina: usalo solo a la hora de dormir. No recomendado para menores de edad, embarazo ni lactancia.'
+  },
   stress: {
     key: 'stress', slug: 'stress-relief-patch', name: 'Stress Relief Patch', short: 'Stress Relief', image: 'stress', accent: '#18917e',
     badge: '',
@@ -194,10 +239,44 @@ const STATIC_COMBOS = {
   'combo-energia-foco': { slug: 'combo-energia-foco', name: 'Combo Energía & Foco', short: 'Energía & Foco', subtitle: 'Energía & Foco', includes: ['energy', 'focus'], price: 17900, badge: '' },
   'combo-foco-calma': { slug: 'combo-foco-calma', name: 'Combo Foco & Calma', short: 'Foco & Calma', subtitle: 'Foco & Calma', includes: ['focus', 'stress'], price: 17900, badge: '' },
   'combo-metabolismo': { slug: 'combo-metabolismo-energia', name: 'Combo Metabolismo & Energía', short: 'Metabolismo & Energía', subtitle: 'Metabolismo & Energía', includes: ['glp1', 'energy'], price: 17900, badge: '' },
-  'combo-mood': { slug: 'combo-mood-calma', name: 'Combo Mood & Calma', short: 'Mood & Calma', subtitle: 'Mood & Calma', includes: ['dopamine', 'stress'], price: 17900, badge: '' }
+  'combo-mood': { slug: 'combo-mood-calma', name: 'Combo Mood & Calma', short: 'Mood & Calma', subtitle: 'Mood & Calma', includes: ['dopamine', 'stress'], price: 17900, badge: '' },
+  // Sleeping Patch combos (approved by the owner, Nov 2026)
+  'combo-dia-noche': { slug: 'combo-dia-y-noche', name: 'Combo Día & Noche', short: 'Día & Noche', subtitle: 'Energía de día, descanso de noche', includes: ['energy', 'sleep'], price: 17900, badge: 'Nuevo' },
+  'combo-calma-24': { slug: 'combo-calma-24-h', name: 'Combo Calma 24 h', short: 'Calma 24 h', subtitle: 'Calma de día, descanso de noche', includes: ['stress', 'sleep'], price: 17900, badge: 'Nuevo' }
 };
 
-export const COMBO_ORDER = ['combo-trio', 'combo-energia-foco', 'combo-foco-calma', 'combo-metabolismo', 'combo-mood', 'combo-full'];
+/** Bloom: hyaluronic-acid micro-needle patches for blemishes. Sold on its own, not part of combos. */
+export const BLOOM = {
+  key: 'bloom', slug: 'bloom-parches-granitos', name: 'Bloom Micro-Infusion Patch', short: 'Bloom', image: 'bloom', cardImage: 'bloom', accent: '#5a3fc8',
+  badge: 'Nuevo', theme: 'skin',
+  tagline: 'Micro-agujas con ácido hialurónico · 9 parches',
+  result: 'Parches transparentes de micro-agujas disolubles con ácido hialurónico, pensados para esos granitos que aparecen justo antes de un plan.',
+  bullets: [
+    ['Qué es', 'Micro-agujas que se disuelven durante la noche'],
+    ['Activo', 'Ácido hialurónico'],
+    ['Cómo se usa', 'Lavá, aplicá sobre el granito y dormí']
+  ],
+  features: [
+    ['Micro-agujas que se disuelven', 'Llevan sus ingredientes directo a la zona del granito mientras descansás.'],
+    ['Transparente', 'Se siente limpio, ligero y fácil de usar sin alterar tu rutina.'],
+    ['Para el último minuto', 'Ideal para esos granitos que aparecen justo antes de un plan.'],
+    ['9 por paquete', 'Uno por granito. Con 2 paquetes, cada parche sale a ₡444.']
+  ],
+  usage: [
+    { title: 'Limpiá', text: 'Lavá tu cara y secá bien el área antes de aplicar.' },
+    { title: 'Aplicá', text: 'Presioná el parche sobre el granito por unos segundos.' },
+    { title: 'Dormí', text: 'Las micro-agujas se disuelven mientras descansás.' }
+  ],
+  note: 'Producto de cuidado de la piel, de uso externo. No usar sobre heridas abiertas ni piel irritada. Si notás irritación, retiralo.'
+};
+
+/** Bloom options shown on its page and in the cart add-on. */
+export const BLOOM_OPTIONS = [
+  { qty: 1, label: '1 paquete', sub: '9 parches' },
+  { qty: 2, label: '2 paquetes', sub: '18 parches' }
+];
+
+export const COMBO_ORDER = ['combo-dia-noche', 'combo-calma-24', 'combo-trio', 'combo-full', 'combo-energia-foco', 'combo-foco-calma', 'combo-metabolismo', 'combo-mood'];
 
 function list(value) {
   return String(value || '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -235,11 +314,13 @@ export function buildCatalog(config = {}) {
       price: SINGLE_PRICE,
       compareAt: null,
       includes: [key],
-      cardImage: `${key}-studio`,
-      unitLabel: '30 parches · 1 mes',
+      cardImage: key === 'sleep' ? 'sleep' : `${key}-studio`,
+      unitLabel: key === 'sleep' ? '30 parches · 30 noches' : '30 parches · 1 mes',
       path: `/producto/${p.slug}/`
     };
   }
+
+  products.bloom = { ...BLOOM, kind: 'bloom', price: BLOOM_PRICE, compareAt: null, includes: ['bloom'], unitLabel: '9 parches por paquete', path: `/producto/${BLOOM.slug}/` };
 
   for (const [key, c] of Object.entries(STATIC_COMBOS)) {
     products[key] = { ...c, key, kind: 'combo', image: key, cardImage: key, compareAt: c.includes.length * SINGLE_PRICE, unitLabel: `${c.includes.length} paquetes de 30 parches`, path: `/producto/${c.slug}/` };
@@ -274,12 +355,14 @@ export function buildCatalog(config = {}) {
   const linePrice = (key, qty) => {
     const p = products[key];
     if (!p) return 0;
+    if (p.kind === 'bloom') return bloomPrice(qty);
     return p.kind === 'patch' ? packPrice(qty) : p.price * qty;
   };
 
   const lineCompare = (key, qty) => {
     const p = products[key];
     if (!p) return 0;
+    if (p.kind === 'bloom') return BLOOM_PRICE * qty;
     return p.kind === 'patch' ? SINGLE_PRICE * qty : p.compareAt * qty;
   };
 
@@ -315,7 +398,8 @@ export function buildCatalog(config = {}) {
     config: cfg,
     list: (keys) => keys.map((k) => products[k]).filter(Boolean),
     patches: () => PATCH_ORDER.map((k) => products[k]),
-    combos: () => COMBO_ORDER.map((k) => products[k]).filter(Boolean)
+    combos: () => COMBO_ORDER.map((k) => products[k]).filter(Boolean),
+    bloom: () => products.bloom
   };
 }
 

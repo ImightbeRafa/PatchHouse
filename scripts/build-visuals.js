@@ -30,8 +30,15 @@ export const PACK_COLORS = {
   energy: { c: '#ecc914', ink: '#4a1210', deep: '#7a1f1f' },
   glp1: { c: '#e58a9c', ink: '#3a1119', deep: '#b04a62' },
   dopamine: { c: '#e9c31d', ink: '#3b3000', deep: '#8a6d00' },
-  stress: { c: '#18917e', ink: '#ffffff', deep: '#0d5c50' }
+  stress: { c: '#18917e', ink: '#ffffff', deep: '#0d5c50' },
+  sleep: { c: '#3b5aa6', ink: '#ffffff', deep: '#0a1f3d' }
 };
+
+/** `npm run visuals -- combos hero` runs only those steps (studio, combos, hero, info, banners). */
+const ONLY = process.argv.slice(2);
+const run = (step) => !ONLY.length || ONLY.includes(step);
+/** Patches with their own generated studio shot, infographic and banner (Sleeping has its own artwork). */
+const STUDIO_KEYS = PATCH_ORDER.filter((k) => k !== 'sleep');
 
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const mix = (h, w, t) => { const a = hex(h); const b = hex(w); return `rgb(${a.map((v, i) => Math.round(v * (1 - t) + b[i] * t)).join(',')})`; };
@@ -276,14 +283,40 @@ function fullHouseVariants() {
   return [...new Map(sets.filter((s) => s.length >= 2).map((s) => [s.join('-'), s])).values()];
 }
 
-console.log('Studio shots...');
-for (const key of PATCH_ORDER) await saveSquare(`${key}-studio`, await composition([key]), { og: false });
+if (run('studio')) {
+  console.log('Studio shots...');
+  for (const key of STUDIO_KEYS) await saveSquare(`${key}-studio`, await composition([key]), { og: false });
+}
 
-console.log('Combos...');
-const cat = buildCatalog(readConfig({}));
-for (const c of cat.combos()) if (c.key !== 'combo-full') await saveSquare(c.key, await composition(c.includes));
-for (const set of fullHouseVariants()) await saveSquare(`combo-full-${set.join('-')}`, await composition(set));
+if (run('combos')) {
+  console.log('Combos...');
+  const cat = buildCatalog(readConfig({}));
+  for (const c of cat.combos()) if (c.key !== 'combo-full') await saveSquare(c.key, await composition(c.includes));
+  for (const set of fullHouseVariants()) await saveSquare(`combo-full-${set.join('-')}`, await composition(set));
+}
 
+if (run('hero')) {
+  console.log('Hero lineup...');
+  // All seven pouches at the same scale: four raised in the back, three in front with Sleeping in the centre.
+  const LINEUP = [
+    ['nad', 400, 680, 600], ['dopamine', 800, 660, 600], ['glp1', 1200, 660, 600], ['stress', 1600, 680, 600],
+    ['focus', 580, 1140, 700], ['sleep', 1000, 1160, 720], ['energy', 1420, 1140, 700]
+  ];
+  const lineupLayers = [];
+  for (const [k, cx, bottom, h] of LINEUP) {
+    const img = await pack(k, h);
+    const { width } = await sharp(img).metadata();
+    const [shadow, body] = await layer(k, h, 0, cx, bottom - h / 2);
+    void width;
+    lineupLayers.push(shadow, body);
+  }
+  const lineup = await sharp({ create: { width: 2000, height: 1200, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).composite(lineupLayers).png().toBuffer();
+  const lineupTrim = await sharp(lineup).trim({ threshold: 1 }).png().toBuffer();
+  for (const w of [700, 1100, 1600]) await sharp(lineupTrim).resize({ width: w }).webp({ quality: 86, alphaQuality: 90, effort: 6 }).toFile(path.join(OUT, `hero-lineup-${w}.webp`));
+  console.log('  hero-lineup');
+}
+
+if (run('hero')) {
 console.log('Hero...');
 // Two rows so every pack name stays readable: two raised packs in the back, four in front with minimal overlap.
 const HERO = [
@@ -297,10 +330,21 @@ const heroTrim = await sharp(hero).trim({ threshold: 1 }).png().toBuffer();
 await sharp(heroTrim).webp({ quality: 86, alphaQuality: 90, effort: 5 }).toFile(path.join(OUT, 'hero-packs.webp'));
 for (const w of [600, 700, 900]) await sharp(heroTrim).resize({ width: w }).webp({ quality: 82, alphaQuality: 85, effort: 6 }).toFile(path.join(OUT, `hero-packs-${w}.webp`));
 console.log('  hero-packs');
+}
 
-console.log('Infographics...');
-for (const key of PATCH_ORDER) await infographic(key);
+if (run('cuts')) {
+  console.log('Pack cut-outs (transparent, for combo rows)...');
+  for (const key of PATCH_ORDER) await sharp(await pack(key, 360)).webp({ quality: 86, alphaQuality: 90, effort: 5 }).toFile(path.join(OUT, `pack-${key}-cut.webp`));
+  console.log('  pack-*-cut');
+}
 
-console.log('Benefit banners...');
-for (const key of PATCH_ORDER) await benefitsBanner(key);
+if (run('info')) {
+  console.log('Infographics...');
+  for (const key of STUDIO_KEYS) await infographic(key);
+}
+
+if (run('banners')) {
+  console.log('Benefit banners...');
+  for (const key of STUDIO_KEYS) await benefitsBanner(key);
+}
 console.log('Done.');

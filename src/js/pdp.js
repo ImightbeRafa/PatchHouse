@@ -74,7 +74,8 @@ const minus = $('[data-qty-minus]');
 const plus = $('[data-qty-plus]');
 const options = $$('input[name="opt"]');
 let selected = key;
-let qty = 1;
+// Bloom's options are quantities (1 or 2 packs) instead of products: they carry data-qty.
+let qty = Number(section?.dataset.startQty) || 1;
 
 function render() {
   const total = catalog.linePrice(selected, qty);
@@ -102,6 +103,7 @@ function render() {
 options.forEach((o) => o.addEventListener('change', () => {
   const sel = options.find((x) => x.checked);
   selected = sel ? sel.value : key;
+  if (sel?.dataset.qty) qty = Number(sel.dataset.qty) || 1;
   options.forEach((x) => x.closest('.opt')?.classList.toggle('on', x.checked));
   render();
 }));

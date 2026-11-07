@@ -19,6 +19,7 @@ import { loadEnv } from 'vite';
 import { buildCatalog, readConfig, SITE } from '../shared/catalog.js';
 import { homePage } from '../src/templates/pages/home.js';
 import { productPage } from '../src/templates/pages/product.js';
+import { sleepPage, bloomPage } from '../src/templates/pages/lines.js';
 import { checkoutPage } from '../src/templates/pages/checkout.js';
 import { confirmPage, successPage, errorPage } from '../src/templates/pages/orders.js';
 import { shippingPage, termsPage, privacyPage, notFoundPage } from '../src/templates/pages/static.js';
@@ -36,7 +37,8 @@ export function generatePages(mode = 'production') {
   for (const entry of GENERATED) fs.rmSync(path.join(root, entry), { recursive: true, force: true });
 
   const pages = { 'index.html': homePage(cat) };
-  for (const p of Object.values(cat.products)) pages[`${p.path.slice(1)}index.html`] = productPage(p, cat);
+  const pageFor = (p) => (p.key === 'sleep' ? sleepPage : p.key === 'bloom' ? bloomPage : productPage)(p, cat);
+  for (const p of Object.values(cat.products)) pages[`${p.path.slice(1)}index.html`] = pageFor(p);
   Object.assign(pages, {
     'checkout/index.html': checkoutPage(),
     'pedido/index.html': confirmPage(),

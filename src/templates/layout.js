@@ -36,11 +36,12 @@ export const icons = {
 };
 
 const NAV = [
-  ['/#tienda', 'Tienda'],
+  ['/#tienda', 'Parches'],
+  ['/producto/sleeping-patch/', 'Noche', true],
+  ['/producto/bloom-parches-granitos/', 'Bloom', true],
   ['/#combos', 'Combos'],
   ['/#quiz', '¿Cuál es para mí?'],
-  ['/#como-funciona', 'Cómo funciona'],
-  ['/#faq', 'Preguntas']
+  ['/#faq', 'Ayuda']
 ];
 
 // Meta Pixel. The stub, init and PageView run immediately (queued); fbevents.js (~260 KB, ~250 ms of
@@ -65,9 +66,9 @@ if(d.readyState==='complete')idle();else addEventListener('load',idle);`}})(wind
 </script>`;
 
 export function header(current = '') {
-  const links = NAV.map(([href, label]) => `<a href="${href}">${label}</a>`).join('');
+  const links = NAV.map(([href, label, isNew]) => `<a href="${href}"${isNew ? ' class="is-new"' : ''}${href === current ? ' aria-current="page"' : ''}>${label}</a>`).join('');
   return `
-<div class="ann" role="note"><strong>Envío gratis</strong> desde ${formatCRC(FREE_SHIPPING_FROM)} · SINPE Móvil o tarjeta</div>
+<div class="ann" role="note"><strong>Nuevo:</strong> Sleeping Patch y Bloom<span class="ann-x"> · Envío gratis desde ${formatCRC(FREE_SHIPPING_FROM)}</span></div>
 <header class="site-header">
   <div class="container bar">
     <button class="icon-btn menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="primary-nav" data-menu-toggle>${icons.menu}</button>
@@ -85,12 +86,14 @@ export function footer() {
     <div class="footer-grid">
       <div class="footer-brand">
         <a href="/" aria-label="PatchHouse, inicio">${wordmark(true)}</a>
-        <p>Parches transdérmicos naturales para tu mente, energía y bienestar diario. Hechos para el día a día en Costa Rica.</p>
+        <p>Parches de bienestar para tu día, tu noche y tu piel. Hechos para el día a día en Costa Rica.</p>
       </div>
       <div>
         <h4>Tienda</h4>
         <ul>
-          <li><a href="/#tienda">Todos los parches</a></li>
+          <li><a href="/#tienda">Parches de día</a></li>
+          <li><a href="/producto/sleeping-patch/">Sleeping Patch</a></li>
+          <li><a href="/producto/bloom-parches-granitos/">Bloom</a></li>
           <li><a href="/#combos">Combos</a></li>
           <li><a href="/#como-funciona">Cómo funciona</a></li>
           <li><a href="/#faq">Preguntas frecuentes</a></li>
@@ -111,7 +114,7 @@ export function footer() {
         <div class="pay-badges"><span>SINPE Móvil</span><span>Tarjeta crédito</span><span>Tarjeta débito</span></div>
       </div>
     </div>
-    <p class="disclaimer">Los productos PatchHouse son suplementos de bienestar y no sustituyen el consejo ni el tratamiento de un profesional de la salud. Los resultados pueden variar de una persona a otra. Consultá con tu médico si tenés una condición médica, estás embarazada o en lactancia.</p>
+    <p class="disclaimer">Los parches PatchHouse, incluido Sleeping Patch, son suplementos de bienestar y no sustituyen el consejo ni el tratamiento de un profesional de la salud. Los resultados pueden variar de una persona a otra. Consultá con tu médico si tenés una condición médica, estás embarazada o en lactancia. Bloom es un producto de cuidado de la piel de uso externo.</p>
     <div class="footer-bottom"><span>&copy; ${new Date().getFullYear()} PatchHouse.CR</span><span>Costa Rica</span></div>
   </div>
 </footer>`;
@@ -163,7 +166,7 @@ export function layout(o) {
   <meta name="description" content="${esc(o.description)}">
   <link rel="canonical" href="${url}">
   <meta name="robots" content="${o.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large'}">
-  <meta name="theme-color" content="#1a1a2e">
+  <meta name="theme-color" content="${o.themeColor || '#f7f3ec'}">
   <meta property="og:type" content="${o.ogType || 'website'}">
   <meta property="og:site_name" content="${SITE.name}">
   <meta property="og:locale" content="es_CR">
@@ -176,6 +179,7 @@ export function layout(o) {
   <link rel="icon" type="image/png" sizes="48x48" href="/images/favicon-48.png">
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
   <link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/playfair-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="dns-prefetch" href="https://connect.facebook.net">
   ${o.head || ''}
   ${css}
@@ -184,7 +188,7 @@ export function layout(o) {
 <body class="${o.bodyClass || ''}">
   <noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=${SITE.pixelId}&ev=PageView&noscript=1"></noscript>
   <a class="skip-link" href="#main">Saltar al contenido</a>
-  ${header()}
+  ${header(o.nav || '')}
   <main id="main">${o.main}</main>
   ${o.tail || ''}
   ${footer()}

@@ -12,7 +12,8 @@ const QUESTIONS = [
       ['stress', '🌿', 'Mi calma', 'Días de mucha carga'],
       ['glp1', '🍽️', 'Mi rutina de alimentación', 'Hábitos y antojos'],
       ['dopamine', '☀️', 'Mi bienestar diario', 'Ánimo para el día a día'],
-      ['nad', '✨', 'Mi vitalidad', 'Energía a nivel celular']
+      ['nad', '✨', 'Mi vitalidad', 'Energía a nivel celular'],
+      ['sleep', '🌙', 'Mi descanso', 'Un ritual para la noche']
     ]
   },
   {
@@ -21,7 +22,8 @@ const QUESTIONS = [
       ['focus', '💻', 'Mucha compu o estudio', ''],
       ['energy', '🏃', 'Activo, con ejercicio', ''],
       ['stress', '📅', 'Muchas responsabilidades', ''],
-      ['glp1', '🥗', 'Cuidando lo que como', '']
+      ['glp1', '🥗', 'Cuidando lo que como', ''],
+      ['sleep', '🛏️', 'Me cuesta desconectar de noche', '']
     ]
   },
   {
@@ -39,8 +41,24 @@ const WHY = {
   stress: 'pensado para acompañarte en los días de mucha carga',
   glp1: 'pensado para acompañar tu rutina de alimentación',
   dopamine: 'pensado para tu bienestar del día a día',
-  nad: 'pensado para acompañar tu vitalidad'
+  nad: 'pensado para acompañar tu vitalidad',
+  sleep: 'pensado para acompañar tu ritual para ir a dormir'
 };
+
+/* ---------- Bloom panel: 1 or 2 packs ---------- */
+const bloomPicker = $('[data-bloom-picker]');
+if (bloomPicker) {
+  const btn = $('[data-bloom-add]', bloomPicker);
+  const price = $('[data-bloom-price]', bloomPicker);
+  bloomPicker.addEventListener('change', (e) => {
+    const input = e.target.closest('input[name="bloom-home"]');
+    if (!input || !btn) return;
+    const qty = Number(input.value) || 1;
+    btn.dataset.qty = String(qty);
+    if (price) price.textContent = formatCRC(catalog.linePrice('bloom', qty));
+    bloomPicker.querySelectorAll('.bopt').forEach((o) => o.classList.toggle('on', o.contains(input)));
+  });
+}
 
 function available(key) { return catalog.products[key] && !catalog.isSoldOut(key); }
 

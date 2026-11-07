@@ -31,8 +31,12 @@ const sinpeOrder = {
 const showOnly = (state) => `document.querySelectorAll('[data-state]').forEach(function(s){s.hidden=s.dataset.state!=='${state}'});var o=document.querySelector('[data-order-id]');if(o)o.textContent='${SAMPLE_ORDER}'`;
 
 /** id, title, description, path, seed (localStorage), act (selectors to click, | separated) or js */
-const SCREENS = [
-  { id: 'home', title: 'Inicio', desc: 'Hero con los productos a la izquierda y el texto a la derecha, franja de confianza, catálogo de parches, videos, cómo funciona, combos, explicación, ventajas, envíos, preguntas y cierre.', p: '/' },
+const ALL_SCREENS = [
+  { id: 'home', title: 'Inicio', desc: 'Hero con los 7 paquetes, franja de confianza, tres momentos (día, noche, piel), todos los parches + Bloom, panel de noche (Sleeping Patch), videos de las tres líneas, panel de Bloom, combos, quiz, cómo funciona, envíos y preguntas.', p: '/' },
+  { id: 'sleeping', title: 'Sleeping Patch', desc: 'Página de noche: toda oscura y dorada. Galería con fotos reales, opciones (solo, Día & Noche, Calma 24 h, Full House), ingredientes por parche, 4 videos, cómo se usa, combos, Bloom, preguntas y advertencias.', p: '/producto/sleeping-patch/' },
+  { id: 'bloom', title: 'Bloom', desc: 'Página de Bloom: mismo fondo marfil con acento lila. 1 paquete ₡4.500 o 2 por ₡8.000, por qué Bloom, 6 videos, cómo se usa, Sleeping, preguntas y parches de día.', p: '/producto/bloom-parches-granitos/' },
+  { id: 'combo-dia-noche', title: 'Combo Día & Noche', desc: 'Nuevo combo Energy + Sleeping Patch a ₡17.900 (en vez de ₡19.800).', p: '/producto/combo-dia-y-noche/' },
+  { id: 'carrito-bloom', title: 'Carrito con Bloom como agregado', desc: 'Con Energy + Sleeping en el carrito aparece Bloom (1 paquete +₡4.500 o 2 por +₡8.000). Con 2 paquetes el envío sale gratis.', p: '/producto/sleeping-patch/', seed: { ph_cart_v2: { energy: 1, sleep: 1 } }, act: '[data-open-cart]', crop: 1000 },
   { id: 'producto', title: 'Página de producto (parche)', desc: 'Galería (foto real, foto en color, infografía, beneficios…), precio, beneficios, selector de opción/combo, cantidad, botón de compra, microgarantías, ingredientes, videos, reseñas (de ejemplo), preguntas y combos relacionados. En móvil aparece la barra fija de compra al bajar.', p: '/producto/focus-patch/' },
   { id: 'producto-combo-elegido', title: 'Producto: eligiendo un combo', desc: 'En la caja de compra se puede elegir el parche solo o un combo que lo incluye, con el ahorro visible. El precio y los botones Agregar al carrito / Comprar ahora cambian según la opción.', p: '/producto/focus-patch/', act: '.options label:nth-of-type(3) input', crop: 1500 },
   { id: 'producto-infografia', title: 'Producto: infografía en la galería', desc: 'Cada parche tiene su infografía "¿Qué son los parches?" en los colores de su empaque, además de la foto real y la foto en color.', p: '/producto/stress-relief-patch/', act: '.th[data-thumb="2"]', crop: 1300 },
@@ -50,6 +54,9 @@ const SCREENS = [
   { id: 'privacidad', title: 'Política de privacidad', desc: 'Datos que recopilamos, para qué, con quién se comparten y tus derechos.', p: '/privacidad/' },
   { id: '404', title: 'Página no encontrada (404)', desc: 'Mensaje claro y botón de regreso a la tienda.', p: '/404.html' }
 ];
+/** PREVIEW_ONLY=home,sleeping renders just those screens (quick checks). */
+const ONLY = (process.env.PREVIEW_ONLY || '').split(',').filter(Boolean);
+const SCREENS = ONLY.length ? ALL_SCREENS.filter((s) => ONLY.includes(s.id)) : ALL_SCREENS;
 const DEVICES = [{ key: 'desktop', w: 1280 }, { key: 'mobile', w: 390 }];
 
 const HARNESS = `<!doctype html><meta charset="utf-8"><body><pre id="out"></pre><script>
@@ -66,6 +73,7 @@ if(q.get('js'))f.contentWindow.eval(atob(q.get('js')));
 await sleep(300);
 for(const l of [...d.querySelectorAll('link[rel=stylesheet]')]){const u=new URL(l.getAttribute('href'),f.contentWindow.location.href);const css=await(await fetch(u.pathname+'?direct')).text();const st=d.createElement('style');st.textContent=css;l.replaceWith(st);}
 d.querySelectorAll('script,link[rel=preload][as=font]').forEach(s=>s.remove());
+d.querySelectorAll('video[data-poster]').forEach(v=>v.setAttribute('poster',v.dataset.poster));
 d.querySelectorAll('input').forEach(i=>{if(i.type==='radio'||i.type==='checkbox'){i.checked?i.setAttribute('checked',''):i.removeAttribute('checked')}else{i.setAttribute('value',i.value)}});
 d.querySelectorAll('textarea').forEach(t=>{t.textContent=t.value});
 d.querySelectorAll('select').forEach(s=>[...s.options].forEach(o=>{o.selected?o.setAttribute('selected',''):o.removeAttribute('selected')}));
@@ -95,10 +103,10 @@ function localize(html, screenIds) {
   const linkMap = { '/': 'home', '/checkout/': 'checkout-sinpe', '/envios-y-devoluciones/': 'envios', '/terminos/': 'terminos', '/privacidad/': 'privacidad' };
   return html
     .replace(/<style[^>]*data-vite-dev-id[^>]*>[\s\S]*?<\/style>/g, '')
-    .replace(/(["'(])\/(images|fonts)\//g, '$1../assets/$2/')
+    .replace(/(["'(,\s])\/(images|fonts)\//g, '$1../assets/$2/') // also every srcset candidate
     .replace(/href="(\/[^"]*)"/g, (all, href) => {
       const clean = href.split('#')[0];
-      const id = linkMap[clean] || (clean.startsWith('/producto/') ? ({ '/producto/combo-trio-bienestar/': 'combo', '/producto/dopamine-patch/': 'agotado' }[clean] || 'producto') : null);
+      const id = linkMap[clean] || (clean.startsWith('/producto/') ? ({ '/producto/combo-trio-bienestar/': 'combo', '/producto/dopamine-patch/': 'agotado', '/producto/sleeping-patch/': 'sleeping', '/producto/bloom-parches-granitos/': 'bloom', '/producto/combo-dia-y-noche/': 'combo-dia-noche' }[clean] || 'producto') : null);
       return id && screenIds.includes(id) && !href.includes('#') ? `href="${id}-DEV.html"` : 'href="#"';
     });
 }

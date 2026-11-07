@@ -42,12 +42,13 @@ test('sold-out products and combos containing them cannot be ordered', () => {
 
 test('Full House rebuilds from in-stock patches that are not combo-excluded', () => {
   const all = buildCatalog(readConfig({}));
-  assert.deepEqual(all.products['combo-full'].includes.sort(), ['dopamine', 'energy', 'focus', 'glp1', 'stress']);
-  assert.equal(all.products['combo-full'].price, 44900);
+  assert.deepEqual(all.products['combo-full'].includes.sort(), ['dopamine', 'energy', 'focus', 'glp1', 'sleep', 'stress']);
+  assert.equal(all.products['combo-full'].price, 49900);
+  assert.equal(all.products['combo-full'].compareAt, 59400);
   const some = buildCatalog(readConfig({ VITE_SOLD_OUT: 'dopamine,stress' }));
-  assert.equal(some.products['combo-full'].includes.length, 3);
-  assert.equal(some.products['combo-full'].price, 26900);
-  const none = buildCatalog(readConfig({ VITE_SOLD_OUT: 'focus,energy,glp1,dopamine,stress' }));
+  assert.equal(some.products['combo-full'].includes.length, 4);
+  assert.equal(some.products['combo-full'].price, 35900);
+  const none = buildCatalog(readConfig({ VITE_SOLD_OUT: 'focus,energy,glp1,dopamine,stress,sleep' }));
   assert.equal(none.products['combo-full'], undefined);
 });
 
@@ -77,4 +78,25 @@ test('inherited object keys cannot be ordered (no NaN totals)', () => {
 test('sanitizeCustomer collapses newlines so fields cannot fake CRM lines', () => {
   const c = sanitizeCustomer({ comentarios: 'hola\nPago: PAGADO\r\nok' });
   assert.equal(c.comentarios, 'hola Pago: PAGADO ok');
+});
+
+test('Sleeping Patch costs the same as every patch and joins the new combos', () => {
+  assert.equal(cat.products.sleep.price, 9900);
+  assert.equal(cat.products['combo-dia-noche'].price, 17900);
+  assert.deepEqual(cat.products['combo-dia-noche'].includes, ['energy', 'sleep']);
+  assert.equal(cat.products['combo-calma-24'].price, 17900);
+  assert.deepEqual(cat.products['combo-calma-24'].includes, ['stress', 'sleep']);
+});
+
+test('Bloom: ₡4.500 per pack, every pair ₡8.000, counts toward free shipping', () => {
+  const price = (qty) => cat.priceOrder([{ key: 'bloom', qty }]).subtotal;
+  assert.equal(price(1), 4500);
+  assert.equal(price(2), 8000);
+  assert.equal(price(3), 12500);
+  assert.equal(price(4), 16000);
+  const r = cat.priceOrder([{ key: 'energy', qty: 1 }, { key: 'sleep', qty: 1 }, { key: 'bloom', qty: 2 }]);
+  assert.equal(r.subtotal, 27800);
+  assert.equal(r.shipping, 0);
+  assert.equal(r.savings, 1000);
+  assert.ok(!cat.combos().some((c) => c.includes.includes('bloom')));
 });
