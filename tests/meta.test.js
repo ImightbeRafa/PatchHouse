@@ -5,6 +5,11 @@ process.env.ORDER_DRY_RUN = 'true';
 process.env.ORDER_SIGNING_SECRET = 'test-secret';
 delete process.env.VITE_SOLD_OUT;
 delete process.env.SOLD_OUT;
+// The anti-troll order checks are covered in api/anti-troll tests: no live DNS lookups or Turnstile here
+// (example.com publishes a null MX, so a real lookup would reject the sample customer).
+process.env.ORDER_CHECKS_DNS = 'off';
+delete process.env.TURNSTILE_SITE_KEY;
+delete process.env.TURNSTILE_SECRET;
 
 const { browserContext, snapshotContext, sendMetaEvent, normalizeMetaPhone } = await import('../api/_lib/meta.js');
 const { verifyOrderToken } = await import('../api/_lib/sign.js');
